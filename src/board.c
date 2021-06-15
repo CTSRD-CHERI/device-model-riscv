@@ -36,7 +36,8 @@
 #include <sys/smp.h>
 
 #include <riscv/sifive/e300g_clint.h>
-#include <riscv/sifive/e300g_uart.h>
+
+#include <dev/uart/uart_16550.h>
 
 #include "board.h"
 
@@ -44,8 +45,6 @@
 #define	UART_BASE		0x10000100
 #define	UART_CLOCK_RATE		3686400
 #define	DEFAULT_BAUDRATE	115200
-
-#include <dev/uart/uart_16550.h>
 
 extern uint8_t __riscv_boot_ap[MDX_CPU_MAX];
 
