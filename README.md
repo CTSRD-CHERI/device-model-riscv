@@ -5,7 +5,8 @@ This is work in progress RISC-V version of [device-model](https://github.com/CTS
 CheriBSD branch is [device-model-riscv](https://github.com/CTSRD-CHERI/cheribsd/tree/device-model-riscv).
 
 ### CheriBSD startup on the 1st core
-	$ ./cheribuild.py run-riscv64-hybrid "--run-riscv64-hybrid/extra-options=-smp 2 -serial mon:stdio -serial pty"
+	$ ./cheribuild.py run-riscv64-hybrid	\
+		"--run-riscv64-hybrid/extra-options=-smp 2 -serial mon:stdio -serial pty"
 
 ### Device-model-riscv (this project) startup
 	$ /usr/sbin/bm -Rl qemu-riscv64.bin
