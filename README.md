@@ -8,8 +8,9 @@ CheriBSD branch is [device-model-riscv](https://github.com/CTSRD-CHERI/cheribsd/
 	$ ./cheribuild.py run-riscv64-hybrid	\
 		"--run-riscv64-hybrid/extra-options=-smp 2 -serial mon:stdio -serial pty"
 
-### Device-model-riscv (this project) startup
+### Device-model-riscv (this project) startup on the 2nd core
 	$ /usr/sbin/bm -Rl qemu-riscv64.bin
 
-### Console access to device-model. Replace 1 with your pts from QEMU output message on char device redirection
+### Console access to device-model.
+    Replace 1 with your pts from QEMU output message on char device redirection
 	$ cu -l /dev/pts/1
