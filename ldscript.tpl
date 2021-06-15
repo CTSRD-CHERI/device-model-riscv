@@ -1,0 +1,47 @@
+OUTPUT_ARCH("riscv")
+ENTRY(_start)
+
+MEMORY
+{
+	sram0 (wxa!ri)  : ORIGIN = 0xf8000000, LENGTH = 8M
+	sram1 (wxa!ri)  : ORIGIN = 0xf8800000, LENGTH = 120M /* malloc */
+}
+
+SECTIONS
+{
+	. = 0xf8000000;
+
+	.start . : {
+		*start.o(.text)
+	} > sram0
+
+	.text : {
+		*(.text)
+	} > sram0
+
+	.sysinit : {
+		__sysinit_start = ABSOLUTE(.);
+		*(.sysinit)
+		__sysinit_end = ABSOLUTE(.);
+	} > sram0
+
+	.rodata : {
+		*(.rodata)
+	} > sram0
+
+	/* Ensure _smem is associated with the next section */
+	. = .;
+	_smem = ABSOLUTE(.);
+	.sdata : {
+		_sdata = ABSOLUTE(.);
+		*(.sdata)
+		_edata = ABSOLUTE(.);
+	} > sram0
+
+	.bss : {
+		_sbss = ABSOLUTE(.);
+		*(.bss COMMON)
+		*(.sbss)
+		_ebss = ABSOLUTE(.);
+	} > sram0
+}

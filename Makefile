@@ -1,0 +1,23 @@
+APP = qemu-riscv64
+
+OSDIR = mdepx
+
+export CFLAGS = -march=rv64gc -mabi=lp64 -mcmodel=medany		\
+	-nostdinc -fno-builtin-printf -ffreestanding -Wall		\
+	-Wredundant-decls -Wnested-externs -Wstrict-prototypes		\
+	-Wmissing-prototypes -Wpointer-arith -Winline -Wcast-qual	\
+	-Wundef -Wmissing-include-dirs -Werror
+
+export AFLAGS = ${CFLAGS}
+
+CMD = python3 -B ${OSDIR}/tools/emitter.py
+
+all:
+	@${CMD} -j mdepx.conf
+	${CROSS_COMPILE}objcopy -O binary ${OBJDIR}/${APP}.elf	\
+		${OBJDIR}/${APP}.bin
+
+clean:
+	@rm -rf obj/*
+
+include ${OSDIR}/mk/user.mk
