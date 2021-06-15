@@ -47,14 +47,6 @@
 
 #define	VIRTIO_BLOCK_MMIO_BASE	0x10007000
 
-static void __unused
-hello(void *arg)
-{
-
-	if (PCPU_GET(cpuid) == 0)
-		printf("\n\nhello\n\n");
-}
-
 int
 main(void)
 {
@@ -70,26 +62,14 @@ main(void)
 
 	mdx_usleep(1000000);
 #endif
-	//while (1) {
-		printf("hello\n");
-		//mdx_usleep(1000000);
-	//}
+
+	printf("hello world\n");
 
 	callout_test();
 
 	/* NOT REACHED */
 
-#ifdef MDX_SCHED_SMP
-	char a;
-	while (1) {
-		a = uart_getchar();
-		if (a == 0x61) {
-			critical_enter();
-			smp_rendezvous_cpus(0xf, hello, NULL);
-			critical_exit();
-		}
-	}
-#endif
+	panic("reached unreachable place");
 
 	return (0);
 }
