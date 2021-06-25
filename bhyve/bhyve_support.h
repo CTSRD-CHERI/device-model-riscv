@@ -1,6 +1,13 @@
 /*-
- * Copyright (c) 2019-2021 Ruslan Bukin <br@bsdpad.com>
+ * SPDX-License-Identifier: BSD-2-Clause
+ *
+ * Copyright (c) 2018 Ruslan Bukin <br@bsdpad.com>
  * All rights reserved.
+ *
+ * This software was developed by SRI International and the University of
+ * Cambridge Computer Laboratory (Department of Computer Science and
+ * Technology) under DARPA contract HR0011-18-C-0016 ("ECATS"), as part of the
+ * DARPA SSITH research programme.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -24,57 +31,27 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
-#include <sys/console.h>
-#include <sys/systm.h>
-#include <sys/thread.h>
-#include <sys/spinlock.h>
-#include <sys/malloc.h>
-#include <sys/mutex.h>
-#include <sys/sem.h>
-#include <sys/list.h>
-#include <sys/smp.h>
-#include <sys/tick.h>
+#ifndef	_BHYVE_SUPPORT_H_
+#define	_BHYVE_SUPPORT_H_
 
-#include <machine/cpuregs.h>
-#include <machine/cpufunc.h>
+#include <bhyve/errno.h>
 
-#include <app/fpu_test/fpu_test.h>
-#include <app/callout_test/callout_test.h>
-#include <app/virtio_test/virtio_test.h>
+struct vmctx {
+	int	fd;
+	uint32_t lowmem_limit;
+	int	memflags;
+	size_t	lowmem;
+	size_t	highmem;
+	char	*baseaddr;
+	char	*name;
+	capability cap;
+};
 
-#include "board.h"
+void *paddr_guest2host(struct vmctx *ctx, uintptr_t addr, size_t len);
+int bhyve_pci_init(struct vmctx *ctx);
+void bhyve_pci_cfgrw(struct vmctx *ctx, int in, int bnum, int snum,
+    int fnum, int coff, int bytes, uint32_t *val);
+void * blockif_thr(void *);
+capability cap_guest2host(struct vmctx *ctx, capability gaddr, size_t len);
 
-#define	VIRTIO_BLOCK_MMIO_BASE	0x10007000
-
-int
-main(void)
-{
-
-#ifdef MDX_VIRTIO
-	int error;
-
-	/* Start system ticker that is needed for virtio. */
-	mdx_uptime_init();
-
-	error = virtio_test((void *)VIRTIO_BLOCK_MMIO_BASE);
-	printf("%s: Virtio test completed with error %d\n", __func__, error);
-
-	mdx_usleep(1000000);
-#endif
-
-	uint8_t *addr;
-	addr = (void *)0x50000000;
-
-	while (1) {
-		printf("hello world %x\n", *addr);
-	}
-
-	callout_test();
-
-	/* NOT REACHED */
-
-	panic("reached unreachable place");
-
-	return (0);
-}
+#endif /* !_BHYVE_SUPPORT_H_ */

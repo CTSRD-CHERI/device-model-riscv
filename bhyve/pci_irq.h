@@ -1,5 +1,8 @@
 /*-
- * Copyright (c) 2019-2021 Ruslan Bukin <br@bsdpad.com>
+ * SPDX-License-Identifier: BSD-2-Clause-FreeBSD
+ *
+ * Copyright (c) 2014 Hudson River Trading LLC
+ * Written by: John H. Baldwin <jhb@FreeBSD.org>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -22,59 +25,23 @@
  * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
+ *
+ * $FreeBSD$
  */
 
-#include <sys/cdefs.h>
-#include <sys/console.h>
-#include <sys/systm.h>
-#include <sys/thread.h>
-#include <sys/spinlock.h>
-#include <sys/malloc.h>
-#include <sys/mutex.h>
-#include <sys/sem.h>
-#include <sys/list.h>
-#include <sys/smp.h>
-#include <sys/tick.h>
+#ifndef __PCI_IRQ_H__
+#define	__PCI_IRQ_H__
 
-#include <machine/cpuregs.h>
-#include <machine/cpufunc.h>
+struct pci_devinst;
 
-#include <app/fpu_test/fpu_test.h>
-#include <app/callout_test/callout_test.h>
-#include <app/virtio_test/virtio_test.h>
+void	pci_irq_assert(struct pci_devinst *pi);
+void	pci_irq_deassert(struct pci_devinst *pi);
+void	pci_irq_init(struct vmctx *ctx);
+void	pci_irq_reserve(int irq);
+void	pci_irq_use(int irq);
+int	pirq_alloc_pin(struct pci_devinst *pi);
+int	pirq_irq(int pin);
+uint8_t	pirq_read(int pin);
+void	pirq_write(struct vmctx *ctx, int pin, uint8_t val);
 
-#include "board.h"
-
-#define	VIRTIO_BLOCK_MMIO_BASE	0x10007000
-
-int
-main(void)
-{
-
-#ifdef MDX_VIRTIO
-	int error;
-
-	/* Start system ticker that is needed for virtio. */
-	mdx_uptime_init();
-
-	error = virtio_test((void *)VIRTIO_BLOCK_MMIO_BASE);
-	printf("%s: Virtio test completed with error %d\n", __func__, error);
-
-	mdx_usleep(1000000);
 #endif
-
-	uint8_t *addr;
-	addr = (void *)0x50000000;
-
-	while (1) {
-		printf("hello world %x\n", *addr);
-	}
-
-	callout_test();
-
-	/* NOT REACHED */
-
-	panic("reached unreachable place");
-
-	return (0);
-}

@@ -1,5 +1,7 @@
 /*-
- * Copyright (c) 2019-2021 Ruslan Bukin <br@bsdpad.com>
+ * SPDX-License-Identifier: BSD-2-Clause-FreeBSD
+ *
+ * Copyright (c) 2011 NetApp, Inc.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -11,10 +13,10 @@
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
  *
- * THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
+ * THIS SOFTWARE IS PROVIDED BY NETAPP, INC ``AS IS'' AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE
+ * ARE DISCLAIMED.  IN NO EVENT SHALL NETAPP, INC OR CONTRIBUTORS BE LIABLE
  * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
  * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
  * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
@@ -22,59 +24,30 @@
  * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
+ *
+ * $FreeBSD$
  */
 
-#include <sys/cdefs.h>
-#include <sys/console.h>
-#include <sys/systm.h>
-#include <sys/thread.h>
-#include <sys/spinlock.h>
-#include <sys/malloc.h>
-#include <sys/mutex.h>
-#include <sys/sem.h>
-#include <sys/list.h>
-#include <sys/smp.h>
-#include <sys/tick.h>
+#ifndef	_MEVENT_H_
+#define	_MEVENT_H_
 
-#include <machine/cpuregs.h>
-#include <machine/cpufunc.h>
+enum ev_type {
+	EVF_READ,
+	EVF_WRITE,
+	EVF_TIMER,
+	EVF_SIGNAL
+};
 
-#include <app/fpu_test/fpu_test.h>
-#include <app/callout_test/callout_test.h>
-#include <app/virtio_test/virtio_test.h>
+struct mevent;
 
-#include "board.h"
+struct mevent *mevent_add(int fd, enum ev_type type, 
+			  void (*func)(int, enum ev_type, void *),
+			  void *param);
+int	mevent_enable(struct mevent *evp);
+int	mevent_disable(struct mevent *evp);
+int	mevent_delete(struct mevent *evp);
+int	mevent_delete_close(struct mevent *evp);
 
-#define	VIRTIO_BLOCK_MMIO_BASE	0x10007000
+void	mevent_dispatch(void);
 
-int
-main(void)
-{
-
-#ifdef MDX_VIRTIO
-	int error;
-
-	/* Start system ticker that is needed for virtio. */
-	mdx_uptime_init();
-
-	error = virtio_test((void *)VIRTIO_BLOCK_MMIO_BASE);
-	printf("%s: Virtio test completed with error %d\n", __func__, error);
-
-	mdx_usleep(1000000);
-#endif
-
-	uint8_t *addr;
-	addr = (void *)0x50000000;
-
-	while (1) {
-		printf("hello world %x\n", *addr);
-	}
-
-	callout_test();
-
-	/* NOT REACHED */
-
-	panic("reached unreachable place");
-
-	return (0);
-}
+#endif	/* _MEVENT_H_ */
