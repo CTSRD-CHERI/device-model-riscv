@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2019-2021 Ruslan Bukin <br@bsdpad.com>
+ * Copyright (c) 2021 Ruslan Bukin <br@bsdpad.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -36,6 +36,8 @@
 #include <sys/smp.h>
 #include <sys/tick.h>
 
+#include <mips/beri/beri_epw.h>
+
 #include <machine/cpuregs.h>
 #include <machine/cpufunc.h>
 
@@ -44,8 +46,11 @@
 #include <app/virtio_test/virtio_test.h>
 
 #include "board.h"
+#include "device-model.h"
 
 #define	VIRTIO_BLOCK_MMIO_BASE	0x10007000
+
+static struct epw_softc epw_sc;
 
 int
 main(void)
@@ -62,6 +67,25 @@ main(void)
 
 	mdx_usleep(1000000);
 #endif
+
+	printf("%s\n", __func__);
+
+	capability base, window;
+	base = (capability)0x50000000;
+	window = (capability)0x60000000;
+
+printf("%s 1\n", __func__);
+	epw_init(&epw_sc, base, window);
+printf("%s 2\n", __func__);
+	/* Enable EPW */
+	epw_control(&epw_sc, 1);
+printf("%s 3\n", __func__);
+
+	dm_init(&epw_sc);
+printf("%s 4\n", __func__);
+	dm_loop(&epw_sc);
+
+	panic("dm_loop returned");
 
 	uint8_t *addr;
 	addr = (void *)0x50000000;
