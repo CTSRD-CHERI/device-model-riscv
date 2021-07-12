@@ -474,7 +474,8 @@ modify_bar_registration(struct pci_devinst *pi, int idx, int registration)
 	struct inout_port iop;
 	struct mem_range mr;
 
-	printf("%s: idx %d registration %d\n", __func__, idx, registration);
+	printf("%s: idx %d registration %d, type %d\n",
+	    __func__, idx, registration, pi->pi_bar[idx].type);
 
 	switch (pi->pi_bar[idx].type) {
 	case PCIBAR_IO:
@@ -503,7 +504,6 @@ modify_bar_registration(struct pci_devinst *pi, int idx, int registration)
 			mr.arg2 = idx;
 			error = register_mem(&mr);
 		} else
-
 			error = unregister_mem(&mr);
 		break;
 	default:
@@ -1112,7 +1112,7 @@ init_pci(struct vmctx *ctx)
 #if 0
 	pci_emul_membase32 = vm_get_lowmem_limit(ctx);
 #else
-	pci_emul_membase32 = 0xfdb10000;
+	pci_emul_membase32 = 0x60010000;
 #endif
 	pci_emul_membase64 = PCI_EMUL_MEMBASE64;
 
@@ -2182,11 +2182,13 @@ bhyve_pci_init(struct vmctx *ctx)
 	bi = pci_businfo[bnum];
 	si = &bi->slotinfo[snum];
 
+#if 1
 	/* Setup e82545 device at 0/0/0. */
 	name = malloc(16);
 	sprintf(name, "e1000");
 	si->si_funcs[fnum].fi_name = name;
 	si->si_funcs[fnum].fi_param = NULL;
+#endif
 
 	/* Setup AHCI device at 0/1/0. */
 	snum = 1;

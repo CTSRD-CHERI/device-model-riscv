@@ -43,6 +43,8 @@
 #include <dev/altera/fifo/fifo.h>
 
 #include "device-model.h"
+#include "emul.h"
+#include "emul_pci.h"
 #if 0
 #include "fwd_device.h"
 #include "emul.h"
@@ -53,8 +55,10 @@
 #include "bhyve/bhyve_support.h"
 #include "bhyve/pci_e82545.h"
 
+#if 0
 #define	DM_FWD_NDEVICES		4
 #define	DM_EMUL_NDEVICES	7
+#endif
 
 #define	DM_DEBUG
 #undef	DM_DEBUG
@@ -64,6 +68,12 @@
 #else
 #define	dprintf(fmt, ...)
 #endif
+
+struct pci_softc pci0_sc;
+#define	DM_EMUL_NDEVICES	1
+const struct emul_link emul_map[DM_EMUL_NDEVICES] = {
+	{ 0x10000, 0x50000, emul_pci, &pci0_sc, PCI_GENERIC },
+};
 
 #if 0
 struct msgdma_softc msgdma0_sc;
@@ -227,10 +237,46 @@ dm_loop(struct epw_softc *sc)
 }
 #endif
 
+static int req_count;
+
+static int
+dm_request(struct epw_softc *sc, struct epw_request *req)
+{
+	const struct emul_link *elink;
+	uint64_t offset;
+	int i;
+
+	offset = req->addr - EPW_WINDOW;
+
+	printf("%s: offset %lx\n", __func__, offset);
+
+	/* Check if this is emulation request */
+	for (i = 0; i < DM_EMUL_NDEVICES; i++) {
+		elink = &emul_map[i];
+		if (offset >= elink->base_emul &&
+		    offset < (elink->base_emul + elink->size)) {
+			elink->request(elink, sc, req);
+			return (0);
+		}
+	}
+
+	printf("%s: unknown request to offset 0x%lx\n", __func__, offset);
+
+	return (-1);
+}
+
 void
 dm_init(struct epw_softc *sc)
 {
+	int error;
 
+	req_count = 0;
+
+#ifdef CONFIG_EMUL_PCI
+	error = emul_pci_init(&pci0_sc);
+	if (error)
+		panic("Can't init PCI\n");
+#endif
 }
 
 void
@@ -243,9 +289,19 @@ dm_loop(struct epw_softc *sc)
 	while (1) {
 		printf("trying to get epw_request\n");
 		if (epw_request(sc, &req) != 0) {
-			while (1)
-				printf("EPW request received\n");
+			printf("EPW request received\n");
+			critical_enter();
+			if (req_count++ % 500 == 0)
+				printf("%s: req count %d\n",
+				    __func__, req_count);
+
+			dm_request(sc, &req);
+			epw_reply(sc, &req);
+			critical_exit();
 		}
-		mdx_usleep(1000000);
+
+		blockif_thr(NULL);
+
+		mdx_usleep(100000);
 	}
 }

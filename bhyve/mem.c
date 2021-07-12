@@ -51,7 +51,7 @@
 #define	VM_MAXCPU	1
 
 #define	BHYVE_MEM_DEBUG
-#undef	BHYVE_MEM_DEBUG
+//#undef	BHYVE_MEM_DEBUG
 
 #ifdef	BHYVE_MEM_DEBUG
 #define	dprintf(fmt, ...)	printf(fmt, ##__VA_ARGS__)
@@ -356,7 +356,7 @@ unregister_mem(struct mem_range *memp)
 
 	if (entry)
 		free(entry);
-	
+
 	return (err);
 }
 
