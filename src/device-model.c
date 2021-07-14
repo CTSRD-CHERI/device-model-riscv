@@ -287,7 +287,7 @@ dm_loop(struct epw_softc *sc)
 	printf("%s: enter\n", __func__);
 
 	while (1) {
-		printf("trying to get epw_request\n");
+		dprintf("trying to get epw_request\n");
 		if (epw_request(sc, &req) != 0) {
 			printf("EPW request received\n");
 			critical_enter();
@@ -302,6 +302,6 @@ dm_loop(struct epw_softc *sc)
 
 		blockif_thr(NULL);
 
-		mdx_usleep(100000);
+		/* Optionally we can sleep a bit here. */
 	}
 }
