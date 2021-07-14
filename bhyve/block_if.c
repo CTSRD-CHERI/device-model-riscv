@@ -374,7 +374,7 @@ blockif_open(const char *optstr, const char *ident)
 	bc->bc_base = (void *)(DM_BASE + 0x03000000);
 #endif
 
-	bc->bc_size = 0x0d000000;
+	bc->bc_size = 0x00d00000;
 	bc->bc_sectsz = sectsz;
 	bc->bc_psectsz = psectsz;
 	bc->bc_psectoff = psectoff;
