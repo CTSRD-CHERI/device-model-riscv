@@ -84,6 +84,9 @@ pci_irq_assert(struct pci_devinst *pi)
 		/* RISCVTODO */
 		//beripic_ip_set(&beripic0, irq);
 	}
+
+	/* AHCI TODO: IRQ 33 starting from 0x1000 */
+	*(volatile uint32_t *)0x0c001004 = 2;
 }
 
 void
