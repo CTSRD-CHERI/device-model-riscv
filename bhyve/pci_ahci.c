@@ -1000,81 +1000,81 @@ handle_identify(struct ahci_port *p, int slot, uint8_t *cfis)
 		blockif_chs(p->bctx, &cyl, &heads, &sech);
 		blockif_psectsz(p->bctx, &psectsz, &psectoff);
 		memset(buf, 0, sizeof(buf));
-		buf[0] = bswap16(0x0040);
-		buf[1] = bswap16(cyl);
-		buf[3] = bswap16(heads);
-		buf[6] = bswap16(sech);
+		buf[0] = le16toh(0x0040);
+		buf[1] = le16toh(cyl);
+		buf[3] = le16toh(heads);
+		buf[6] = le16toh(sech);
 		ata_string((uint8_t *)(buf+10), p->ident, 20);
 		ata_string((uint8_t *)(buf+23), "001", 8);
 		ata_string((uint8_t *)(buf+27), "BHYVE SATA DISK", 40);
-		buf[47] = bswap16((0x8000 | 128));
+		buf[47] = le16toh((0x8000 | 128));
 		buf[48] = 0;
-		buf[49] = bswap16((1 << 8 | 1 << 9 | 1 << 11));
-		buf[50] = bswap16((1 << 14));
-		buf[53] = bswap16((1 << 1 | 1 << 2));
+		buf[49] = le16toh((1 << 8 | 1 << 9 | 1 << 11));
+		buf[50] = le16toh((1 << 14));
+		buf[53] = le16toh((1 << 1 | 1 << 2));
 		if (p->mult_sectors)
-			buf[59] = bswap16((0x100 | p->mult_sectors));
+			buf[59] = le16toh((0x100 | p->mult_sectors));
 		if (sectors <= 0x0fffffff) {
-			buf[60] = bswap16(sectors);
-			buf[61] = bswap16(sectors >> 16);
+			buf[60] = le16toh(sectors);
+			buf[61] = le16toh(sectors >> 16);
 		} else {
-			buf[60] = bswap16(0xffff);
-			buf[61] = bswap16(0x0fff);
+			buf[60] = le16toh(0xffff);
+			buf[61] = le16toh(0x0fff);
 		}
-		buf[63] = bswap16(0x7);
+		buf[63] = le16toh(0x7);
 		if (p->xfermode & ATA_WDMA0)
-			buf[63] |= bswap16((1 << ((p->xfermode & 7) + 8)));
-		buf[64] = bswap16(0x3);
-		buf[65] = bswap16(120);
-		buf[66] = bswap16(120);
-		buf[67] = bswap16(120);
-		buf[68] = bswap16(120);
+			buf[63] |= le16toh((1 << ((p->xfermode & 7) + 8)));
+		buf[64] = le16toh(0x3);
+		buf[65] = le16toh(120);
+		buf[66] = le16toh(120);
+		buf[67] = le16toh(120);
+		buf[68] = le16toh(120);
 		buf[69] = 0;
-		buf[75] = bswap16(31);
-		buf[76] = bswap16(ATA_SATA_GEN1 | ATA_SATA_GEN2 | ATA_SATA_GEN3 |
+		buf[75] = le16toh(31);
+		buf[76] = le16toh(ATA_SATA_GEN1 | ATA_SATA_GEN2 | ATA_SATA_GEN3 |
 			   ATA_SUPPORT_NCQ);
-		buf[77] = bswap16(ATA_SUPPORT_RCVSND_FPDMA_QUEUED |
+		buf[77] = le16toh(ATA_SUPPORT_RCVSND_FPDMA_QUEUED |
 			   (p->ssts & ATA_SS_SPD_MASK) >> 3);
-		buf[80] = bswap16(0x3f0);
-		buf[81] = bswap16(0x28);
-		buf[82] = bswap16(ATA_SUPPORT_POWERMGT | ATA_SUPPORT_WRITECACHE|
+		buf[80] = le16toh(0x3f0);
+		buf[81] = le16toh(0x28);
+		buf[82] = le16toh(ATA_SUPPORT_POWERMGT | ATA_SUPPORT_WRITECACHE|
 			   ATA_SUPPORT_LOOKAHEAD | ATA_SUPPORT_NOP);
-		buf[83] = bswap16(ATA_SUPPORT_ADDRESS48 | ATA_SUPPORT_FLUSHCACHE |
+		buf[83] = le16toh(ATA_SUPPORT_ADDRESS48 | ATA_SUPPORT_FLUSHCACHE |
 			   ATA_SUPPORT_FLUSHCACHE48 | 1 << 14);
-		buf[84] = bswap16(1 << 14);
-		buf[85] = bswap16(ATA_SUPPORT_POWERMGT | ATA_SUPPORT_WRITECACHE|
+		buf[84] = le16toh(1 << 14);
+		buf[85] = le16toh(ATA_SUPPORT_POWERMGT | ATA_SUPPORT_WRITECACHE|
 			   ATA_SUPPORT_LOOKAHEAD | ATA_SUPPORT_NOP);
-		buf[86] = bswap16(ATA_SUPPORT_ADDRESS48 | ATA_SUPPORT_FLUSHCACHE |
+		buf[86] = le16toh(ATA_SUPPORT_ADDRESS48 | ATA_SUPPORT_FLUSHCACHE |
 			   ATA_SUPPORT_FLUSHCACHE48 | 1 << 15);
-		buf[87] = bswap16(1 << 14);
-		buf[88] = bswap16(0x7f);
+		buf[87] = le16toh(1 << 14);
+		buf[88] = le16toh(0x7f);
 		if (p->xfermode & ATA_UDMA0)
-			buf[88] |= bswap16((1 << ((p->xfermode & 7) + 8)));
-		buf[100] = bswap16(sectors);
-		buf[101] = bswap16(sectors >> 16);
-		buf[102] = bswap16(sectors >> 32);
-		buf[103] = bswap16(sectors >> 48);
+			buf[88] |= le16toh((1 << ((p->xfermode & 7) + 8)));
+		buf[100] = le16toh(sectors);
+		buf[101] = le16toh(sectors >> 16);
+		buf[102] = le16toh(sectors >> 32);
+		buf[103] = le16toh(sectors >> 48);
 		if (candelete && !ro) {
-			buf[69] |= bswap16(ATA_SUPPORT_RZAT | ATA_SUPPORT_DRAT);
-			buf[105] = bswap16(1);
-			buf[169] = bswap16(ATA_SUPPORT_DSM_TRIM);
+			buf[69] |= le16toh(ATA_SUPPORT_RZAT | ATA_SUPPORT_DRAT);
+			buf[105] = le16toh(1);
+			buf[169] = le16toh(ATA_SUPPORT_DSM_TRIM);
 		}
-		buf[106] = bswap16(0x4000);
-		buf[209] = bswap16(0x4000);
+		buf[106] = le16toh(0x4000);
+		buf[209] = le16toh(0x4000);
 		if (psectsz > sectsz) {
-			buf[106] |= bswap16(0x2000);
-			buf[106] |= bswap16(ffsl(psectsz / sectsz) - 1);
-			buf[209] |= bswap16((psectoff / sectsz));
+			buf[106] |= le16toh(0x2000);
+			buf[106] |= le16toh(ffsl(psectsz / sectsz) - 1);
+			buf[209] |= le16toh((psectoff / sectsz));
 		}
 		if (sectsz > 512) {
-			buf[106] |= bswap16(0x1000);
-			buf[117] = bswap16(sectsz / 2);
-			buf[118] = bswap16(((sectsz / 2) >> 16));
+			buf[106] |= le16toh(0x1000);
+			buf[117] = le16toh(sectsz / 2);
+			buf[118] = le16toh(((sectsz / 2) >> 16));
 		}
-		buf[119] = bswap16(ATA_SUPPORT_RWLOGDMAEXT | 1 << 14);
-		buf[120] = bswap16(ATA_SUPPORT_RWLOGDMAEXT | 1 << 14);
-		buf[222] = bswap16(0x1020);
-		buf[255] = bswap16(0x00a5);
+		buf[119] = le16toh(ATA_SUPPORT_RWLOGDMAEXT | 1 << 14);
+		buf[120] = le16toh(ATA_SUPPORT_RWLOGDMAEXT | 1 << 14);
+		buf[222] = le16toh(0x1020);
+		buf[255] = le16toh(0x00a5);
 		ahci_checksum((uint8_t *)buf, sizeof(buf));
 		ahci_write_fis_piosetup(p);
 		write_prdt(p, slot, cfis, (void *)buf, sizeof(buf));
