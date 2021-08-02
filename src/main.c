@@ -41,31 +41,39 @@
 #include <machine/cpuregs.h>
 #include <machine/cpufunc.h>
 
+#include <dev/virtio/virtio.h>
+#include <dev/virtio/virtio-blk.h>
+#include <dev/virtio/virtio-net.h>
+
 #include <app/fpu_test/fpu_test.h>
 #include <app/callout_test/callout_test.h>
-#include <app/virtio_test/virtio_test.h>
 
 #include "board.h"
 #include "device-model.h"
 
-#define	VIRTIO_BLOCK_MMIO_BASE	0x10007000
+#define	VIRTIO_NET_MMIO_BASE	0x10007000
 
 static struct epw_softc epw_sc;
+
+static void
+virtio_test(void)
+{
+	struct virtio_device *vd;
+	struct virtio_net *net;
+
+	vd = virtio_setup_vd((void *)VIRTIO_NET_MMIO_BASE);
+
+	net = virtionet_open(vd);
+
+	printf("net is %p\n", net);
+}
 
 int
 main(void)
 {
 
 #ifdef MDX_VIRTIO
-	int error;
-
-	/* Start system ticker that is needed for virtio. */
-	mdx_uptime_init();
-
-	error = virtio_test((void *)VIRTIO_BLOCK_MMIO_BASE);
-	printf("%s: Virtio test completed with error %d\n", __func__, error);
-
-	mdx_usleep(1000000);
+	virtio_test();
 #endif
 
 	printf("%s\n", __func__);
