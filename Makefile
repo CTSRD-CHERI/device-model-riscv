@@ -1,6 +1,7 @@
 APP = qemu-riscv64
 
 OSDIR = mdepx
+OBJDIR = obj
 DM_BASE = 0xf8000000
 
 export CFLAGS = -march=rv64gc -mabi=lp64 -mcmodel=medany		\
