@@ -85,20 +85,19 @@ const struct emul_link emul_map[DM_EMUL_NDEVICES] = {
 	{ 0x10000, 0x50000, emul_pci, &pci0_sc, PCI_GENERIC },
 };
 
-extern struct e82545_softc *e82545_sc;
-
 struct virtio_device *vd;
 struct virtio_net *vnet;
 
+extern struct e82545_softc *e82545_sc;
 extern struct mdx_device dev_plic;
 
-//static char netbuf[1024];
+static char netbuf[8192];
 
 static void
 net_intr(void *arg, int irq)
 {
 
-	printf("%s\n", __func__);
+	dprintf("%s\n", __func__);
 
 	e82545_rx_event(e82545_sc);
 
@@ -112,7 +111,7 @@ virtio_init(void)
 	vd = virtio_setup_vd((void *)VIRTIO_NET_MMIO_BASE);
 	vnet = virtionet_open(vd);
 
-	printf("vnet is %p\n", vnet);
+	dprintf("vnet is %p\n", vnet);
 
 	mdx_intc_setup(&dev_plic, 7, net_intr, NULL);
 	mdx_intc_enable(&dev_plic, 7);
@@ -129,7 +128,7 @@ dm_process_rx(struct iovec *iov, int iovcnt)
 	do {
 		err = virtionet_read(vnet, (char *)iov[i].iov_base,
 		    iov[i].iov_len);
-		printf("%s: read %d bytes\n", __func__, err);
+		dprintf("%s: read %d bytes\n", __func__, err);
 		i++;
 		if (i >= iovcnt)
 			break;
@@ -374,8 +373,6 @@ dm_loop(struct epw_softc *sc)
 	}
 }
 
-static char netbuf[8192];
-
 void
 dm_process_tx(struct iovec *iov, int iovcnt)
 {
@@ -384,7 +381,7 @@ dm_process_tx(struct iovec *iov, int iovcnt)
 	int len;
 	int i;
 
-	printf("%s: cnt %d\n", __func__, iovcnt);
+	dprintf("%s: cnt %d\n", __func__, iovcnt);
 
 	tot_len = 0;
 
@@ -395,6 +392,6 @@ dm_process_tx(struct iovec *iov, int iovcnt)
 		tot_len += len;
 	}
 
-	printf("%s: sending %d packets, size %d\n", __func__, i, len);
+	dprintf("%s: sending %d packets, tot size %d\n", __func__, i, tot_len);
 	virtionet_write(vnet, netbuf, tot_len);
 }
