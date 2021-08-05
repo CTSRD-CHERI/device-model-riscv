@@ -85,8 +85,13 @@ pci_irq_assert(struct pci_devinst *pi)
 		//beripic_ip_set(&beripic0, irq);
 	}
 
-	/* AHCI TODO: IRQ 33 starting from 0x1000 */
-	*(volatile uint32_t *)0x0c001004 = 2;
+	/* AHCI TODO: Setting IRQ 33 starting from 0x1000 */
+	if (strcmp(pi->pi_name, "ahci-hd-pci-1") == 0)
+		*(volatile uint32_t *)0x0c001004 = 2;
+
+	/* E1000 TODO: Setting IRQ 32 starting from 0x1000 */
+	else if (strcmp(pi->pi_name, "e1000-pci-0") == 0)
+		*(volatile uint32_t *)0x0c001004 = 1;
 }
 
 void
