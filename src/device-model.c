@@ -60,7 +60,7 @@
 #include "bhyve/bhyve_support.h"
 #include "bhyve/pci_e82545.h"
 
-#define	VIRTIO_NET_MMIO_BASE	0x10007000
+#include "virtio.h"
 
 #if 0
 #define	DM_FWD_NDEVICES		4
@@ -76,66 +76,11 @@
 #define	dprintf(fmt, ...)
 #endif
 
-extern struct virtio_device *vd;
-extern struct virtio_net *vnet;
-
 struct pci_softc pci0_sc;
 #define	DM_EMUL_NDEVICES	1
 const struct emul_link emul_map[DM_EMUL_NDEVICES] = {
 	{ 0x10000, 0x50000, emul_pci, &pci0_sc, PCI_GENERIC },
 };
-
-struct virtio_device *vd;
-struct virtio_net *vnet;
-
-extern struct e82545_softc *e82545_sc;
-extern struct mdx_device dev_plic;
-
-static char netbuf[8192];
-
-static void
-net_intr(void *arg, int irq)
-{
-
-	dprintf("%s\n", __func__);
-
-	e82545_rx_event(e82545_sc);
-
-	virtionet_handle_interrupt(vnet);
-}
-
-static void
-virtio_init(void)
-{
-
-	vd = virtio_setup_vd((void *)VIRTIO_NET_MMIO_BASE);
-	vnet = virtionet_open(vd);
-
-	dprintf("vnet is %p\n", vnet);
-
-	mdx_intc_setup(&dev_plic, 7, net_intr, NULL);
-	mdx_intc_enable(&dev_plic, 7);
-}
-
-int
-dm_process_rx(struct iovec *iov, int iovcnt)
-{
-	int err;
-	int i;
-
-	i = 0;
-
-	do {
-		err = virtionet_read(vnet, (char *)iov[i].iov_base,
-		    iov[i].iov_len);
-		dprintf("%s: read %d bytes\n", __func__, err);
-		i++;
-		if (i >= iovcnt)
-			break;
-	} while (err != 0);
-
-	return (err);
-}
 
 #if 0
 struct msgdma_softc msgdma0_sc;
@@ -371,27 +316,4 @@ dm_loop(struct epw_softc *sc)
 
 		/* Optionally we can sleep a bit here. */
 	}
-}
-
-void
-dm_process_tx(struct iovec *iov, int iovcnt)
-{
-	int tot_len;
-	void *buf;
-	int len;
-	int i;
-
-	dprintf("%s: cnt %d\n", __func__, iovcnt);
-
-	tot_len = 0;
-
-	for (i = 0; i < iovcnt; i++) {
-		buf = iov[i].iov_base;
-		len = iov[i].iov_len;
-		memcpy(&netbuf[tot_len], buf, len);
-		tot_len += len;
-	}
-
-	dprintf("%s: sending %d packets, tot size %d\n", __func__, i, tot_len);
-	virtionet_write(vnet, netbuf, tot_len);
 }
