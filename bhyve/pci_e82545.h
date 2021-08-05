@@ -41,4 +41,7 @@ int e82545_setup_fifo(struct altera_fifo_softc *fifo_tx,
     struct altera_fifo_softc *fifo_rx);
 void e82545_itr_callback(void *arg);
 
+struct e82545_softc;
+void e82545_rx_event(struct e82545_softc *sc);
+
 #endif	/* !_PCI_E82545_H_ */

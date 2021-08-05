@@ -986,7 +986,7 @@ e82545_tap_callback(int fd, enum ev_type type, void *param)
 #if 0
 		len = readv(sc->esc_tapfd, vec, maxpktdesc);
 #else
-		len = fifo_process_rx(sc->fifo_rx, vec, maxpktdesc, 2);
+		len = dm_process_rx(vec, maxpktdesc);
 #endif
 		if (len <= 0) {
 			DPRINTF("tap: readv() returned %d\n", len);
@@ -1169,7 +1169,7 @@ static void
 e82545_transmit_backend(struct e82545_softc *sc, struct iovec *iov, int iovcnt)
 {
 
-	fifo_process_tx(sc->fifo_tx, iov, iovcnt);
+	dm_process_tx(iov, iovcnt);
 
 #if 0
 	if (sc->esc_tapfd == -1)
@@ -1591,12 +1591,21 @@ e82545_tx_poll(struct e82545_softc *sc)
 	pthread_mutex_unlock(&sc->esc_mtx);
 }
 
+#if 0
 static void
 e82545_rx_poll(void *arg)
 {
 	struct e82545_softc *sc;
 
 	sc = arg;
+
+	e82545_tap_callback(0, 0, sc);
+}
+#endif
+
+void
+e82545_rx_event(struct e82545_softc *sc)
+{
 
 	e82545_tap_callback(0, 0, sc);
 }
@@ -1615,11 +1624,14 @@ e1000_poll(void)
 	e82545_tx_poll(sc);
 	intr_restore(intr);
 
+#if 0
 	intr = intr_disable();
 	e82545_rx_poll(sc);
 	intr_restore(intr);
+#endif
 }
 
+#if 0
 static void
 e1000_fifo_work(void *arg)
 {
@@ -1684,6 +1696,7 @@ e82545_setup_fifo(struct altera_fifo_softc *fifo_tx,
 
 	return (0);
 }
+#endif
 
 static void
 e82545_tx_start(struct e82545_softc *sc)
