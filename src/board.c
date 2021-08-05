@@ -36,12 +36,13 @@
 #include <sys/smp.h>
 
 #include <riscv/sifive/e300g_clint.h>
-
+#include <riscv/include/plic.h>
 #include <dev/uart/uart_16550.h>
 
 #include "board.h"
 
 #define	CLINT_BASE		0x02000000
+#define	PLIC_BASE		0x0c000000
 #define	UART_BASE		0x10000100
 #define	UART_CLOCK_RATE		3686400
 #define	DEFAULT_BAUDRATE	115200
@@ -50,8 +51,10 @@ extern uint8_t __riscv_boot_ap[MDX_CPU_MAX];
 
 static struct uart_16550_softc uart_sc;
 static struct clint_softc clint_sc;
+static struct plic_softc plic_sc;
 
 struct mdx_device dev_uart = { .sc = &uart_sc };
+struct mdx_device dev_plic = { .sc = &plic_sc };
 
 char
 uart_getchar(void)
@@ -84,6 +87,8 @@ board_init(void)
 	/* Timer */
 
 	e300g_clint_init(&clint_sc, CLINT_BASE, BOARD_CPU_FREQ);
+	plic_init(&dev_plic, PLIC_BASE, 0, 1);
+	plic_init(&dev_plic, PLIC_BASE, 1, 3);
 
 	/* Release secondary core(s) */
 
