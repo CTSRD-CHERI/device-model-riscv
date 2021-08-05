@@ -51,30 +51,11 @@
 #include "board.h"
 #include "device-model.h"
 
-#define	VIRTIO_NET_MMIO_BASE	0x10007000
-
 static struct epw_softc epw_sc;
-
-static void
-virtio_test(void)
-{
-	struct virtio_device *vd;
-	struct virtio_net *net;
-
-	vd = virtio_setup_vd((void *)VIRTIO_NET_MMIO_BASE);
-
-	net = virtionet_open(vd);
-
-	printf("net is %p\n", net);
-}
 
 int
 main(void)
 {
-
-#ifdef MDX_VIRTIO
-	virtio_test();
-#endif
 
 	printf("%s\n", __func__);
 

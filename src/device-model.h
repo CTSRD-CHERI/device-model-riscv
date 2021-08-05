@@ -34,6 +34,7 @@
 #ifndef	_DEVICE_MODEL_H_
 #define	_DEVICE_MODEL_H_
 
+#include <sys/uio.h>
 #include <mips/beri/beri_epw.h>
 
 #define	EPW_BASE		0x50000000	/* Control interface */
@@ -92,5 +93,8 @@ void cpu_reset(void);
 
 void dm_loop(struct epw_softc *sc);
 void dm_init(struct epw_softc *sc);
+
+void dm_process_tx(struct iovec *iov, int iovcnt);
+int dm_process_rx(struct iovec *iov, int iovcnt);
 
 #endif	/* !_DEVICE_MODEL_H_ */
