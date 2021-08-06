@@ -33,11 +33,6 @@
 
 #include <sys/cdefs.h>
 #include <sys/systm.h>
-#include <sys/malloc.h>
-#include <sys/cheri.h>
-
-#include <machine/cpuregs.h>
-#include <machine/cpufunc.h>
 
 #include <dev/virtio/virtio.h>
 #include <dev/virtio/virtio-blk.h>

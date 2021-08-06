@@ -37,15 +37,6 @@
 #include <sys/cheri.h>
 
 #include <machine/cpuregs.h>
-#include <machine/cpufunc.h>
-
-#include <mips/beri/beri_epw.h>
-#include <dev/altera/fifo/fifo.h>
-
-#include <dev/virtio/virtio.h>
-#include <dev/virtio/virtio-blk.h>
-#include <dev/virtio/virtio-net.h>
-#include <dev/intc/intc.h>
 
 #include "device-model.h"
 #include "emul.h"
