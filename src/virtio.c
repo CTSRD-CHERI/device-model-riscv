@@ -50,6 +50,7 @@
 #include "virtio.h"
 
 #define	VIRTIO_NET_MMIO_BASE	0x10007000
+#define	VIRTIO_MAX_BUF		8192
 
 #define	VIRTIO_DEBUG
 #undef	VIRTIO_DEBUG
@@ -65,7 +66,7 @@ extern struct mdx_device dev_plic;
 
 static struct virtio_device *vd;
 static struct virtio_net *vnet;
-static char netbuf[8192];
+static char netbuf[VIRTIO_MAX_BUF];
 
 static void
 net_intr(void *arg, int irq)
@@ -126,6 +127,9 @@ dm_process_tx(struct iovec *iov, int iovcnt)
 	for (i = 0; i < iovcnt; i++) {
 		buf = iov[i].iov_base;
 		len = iov[i].iov_len;
+		if (tot_len + len >= VIRTIO_MAX_BUF)
+			panic("buffer is too small: %d >= %d",
+			    tot_len + len, VIRTIO_MAX_BUF);
 		memcpy(&netbuf[tot_len], buf, len);
 		tot_len += len;
 	}
