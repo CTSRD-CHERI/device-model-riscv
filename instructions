@@ -1,5 +1,0 @@
-On the QEMU host:
-sudo tunctl -t tap0 -u `whoami`
-sudo ifconfig tap0 up
-
-./cheribuild.py run-riscv64 "--run-riscv64/extra-options=-smp 2 -serial mon:stdio -serial pty -accel tcg,thread=multi -bios /home/br/fw_jump.elf -device virtio-net-device,netdev=net0 -netdev tap,id=net0,ifname=tap0,script=no,downscript=no" -d

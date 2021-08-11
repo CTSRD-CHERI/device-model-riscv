@@ -1,6 +1,6 @@
 # device-model-riscv
 
-This is work in progress RISC-V version of [device-model](https://github.com/CTSRD-CHERI/device-model)
+This is work in progress RISC-V version of [device-model](https://github.com/CTSRD-CHERI/device-model).
 
 CheriBSD branch is [device-model-riscv](https://github.com/CTSRD-CHERI/cheribsd/tree/device-model-riscv).
 
@@ -21,7 +21,12 @@ From the CheriBSD that is running on 1st core:
     Replace 1 with your pts from QEMU output message on char device redirection
 	$ cu -l /dev/pts/1
 
-### Start PCI emulation
+### Setup tap device (on the QEMU host):
+
+    $ sudo tunctl -t tap0 -u `whoami`
+    $ sudo ifconfig tap0 up
+
+### Start PCI emulation (on the CheriBSD):
 
 This includes PCI itself, E1000 and AHCI controllers:
 
