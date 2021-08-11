@@ -1,7 +1,7 @@
 /*-
  * SPDX-License-Identifier: BSD-2-Clause
  *
- * Copyright (c) 2018-2020 Ruslan Bukin <br@bsdpad.com>
+ * Copyright (c) 2021 Ruslan Bukin <br@bsdpad.com>
  * All rights reserved.
  *
  * This software was developed by SRI International and the University of
@@ -41,22 +41,10 @@
 #include "device-model.h"
 #include "emul.h"
 #include "emul_pci.h"
-#if 0
-#include "fwd_device.h"
-#include "emul.h"
-#include "emul_msgdma.h"
-#include "emul_iommu.h"
-#include "emul_pci.h"
-#endif
 #include "bhyve/bhyve_support.h"
 #include "bhyve/pci_e82545.h"
 
 #include "virtio.h"
-
-#if 0
-#define	DM_FWD_NDEVICES		4
-#define	DM_EMUL_NDEVICES	7
-#endif
 
 #define	DM_DEBUG
 #undef	DM_DEBUG
@@ -67,174 +55,14 @@
 #define	dprintf(fmt, ...)
 #endif
 
-struct pci_softc pci0_sc;
+static struct pci_softc pci0_sc;
+static int req_count;
+
 #define	DM_EMUL_NDEVICES	1
+
 const struct emul_link emul_map[DM_EMUL_NDEVICES] = {
 	{ 0x10000, 0x50000, emul_pci, &pci0_sc, PCI_GENERIC },
 };
-
-#if 0
-struct msgdma_softc msgdma0_sc;
-struct msgdma_softc msgdma1_sc;
-struct iommu_softc iommu0_sc;
-struct iommu_softc iommu1_sc;
-struct altera_fifo_softc fifo0_sc;
-struct altera_fifo_softc fifo1_sc;
-struct pci_softc pci0_sc;
-
-static int req_count;
-
-const struct fwd_link fwd_map[DM_FWD_NDEVICES] = {
-	{ 0x0000, 0x20, MSGDMA0_BASE_CSR,  fwd_request },	/* Control Status Register */
-	{ 0x0020, 0x20, MSGDMA0_BASE_DESC, fwd_request },	/* Prefetcher */
-	{ 0x0040, 0x20, MSGDMA1_BASE_CSR,  fwd_request },	/* Control Status Register */
-	{ 0x0060, 0x20, MSGDMA1_BASE_DESC, fwd_request },	/* Prefetcher */
-};
-
-const struct emul_link emul_map[DM_EMUL_NDEVICES] = {
-	{ 0x04080, 0x00020, emul_msgdma, &msgdma0_sc, MSGDMA_CSR },
-	{ 0x040a0, 0x00020, emul_msgdma, &msgdma0_sc, MSGDMA_PF  },
-	{ 0x04000, 0x00020, emul_msgdma, &msgdma1_sc, MSGDMA_CSR },
-	{ 0x04020, 0x00020, emul_msgdma, &msgdma1_sc, MSGDMA_PF  },
-	{ 0x10000, 0x50000, emul_pci, &pci0_sc, PCI_GENERIC },
-	{ 0x60000, 0x00100, emul_iommu, &iommu0_sc, MSGDMA_IOMMU },
-	{ 0x60100, 0x00100, emul_iommu, &iommu1_sc, MSGDMA_IOMMU },
-};
-
-static int
-dm_request(struct epw_softc *sc, struct epw_request *req)
-{
-	const struct fwd_link *flink;
-	const struct emul_link *elink;
-	uint64_t offset;
-	int i;
-
-	offset = req->addr - EPW_WINDOW;
-
-	dprintf("%s: offset %lx\n", __func__, offset);
-
-	/* Check if this is forwarding request */
-	for (i = 0; i < DM_FWD_NDEVICES; i++) {
-		flink = &fwd_map[i];
-		if (offset >= flink->base_emul &&
-		    offset < (flink->base_emul + flink->size)) {
-			flink->request(flink, sc, req);
-			return (0);
-		}
-	}
-
-	/* Check if this is emulation request */
-	for (i = 0; i < DM_EMUL_NDEVICES; i++) {
-		elink = &emul_map[i];
-		if (offset >= elink->base_emul &&
-		    offset < (elink->base_emul + elink->size)) {
-			elink->request(elink, sc, req);
-			return (0);
-		}
-	}
-
-	printf("%s: unknown request to offset 0x%lx\n", __func__, offset);
-
-	return (-1);
-}
-
-void
-dm_init(struct epw_softc *sc)
-{
-	capability cap;
-	int error;
-
-	printf("%s\n", __func__);
-
-	cap = cheri_getdefault();
-
-	fifo0_sc.fifo_base_mem =
-	    cheri_setoffset(cap, FIFO2_BASE_MEM | MIPS_XKPHYS_UNCACHED_BASE);
-	fifo0_sc.fifo_base_mem_cached =
-	    cheri_setoffset(cap, FIFO2_BASE_MEM | MIPS_XKPHYS_CACHED_BASE);
-	fifo0_sc.fifo_base_ctrl =
-	    cheri_setoffset(cap, FIFO2_BASE_CTRL | MIPS_XKPHYS_UNCACHED_BASE);
-
-	fifo0_sc.unit = 0;
-	iommu0_sc.unit = 0;
-	msgdma0_sc.unit = 0;
-	msgdma0_sc.fifo_sc = &fifo0_sc;
-	msgdma0_sc.iommu_sc = &iommu0_sc;
-
-	fifo1_sc.fifo_base_mem =
-	    cheri_setoffset(cap, FIFO3_BASE_MEM | MIPS_XKPHYS_UNCACHED_BASE);
-	fifo1_sc.fifo_base_mem_cached =
-	    cheri_setoffset(cap, FIFO3_BASE_MEM | MIPS_XKPHYS_CACHED_BASE);
-	fifo1_sc.fifo_base_ctrl =
-	    cheri_setoffset(cap, FIFO3_BASE_CTRL | MIPS_XKPHYS_UNCACHED_BASE);
-
-	fifo1_sc.unit = 1;
-	iommu1_sc.unit = 1;
-	msgdma1_sc.unit = 1;
-	msgdma1_sc.fifo_sc = &fifo1_sc;
-	msgdma1_sc.iommu_sc = &iommu1_sc;
-
-	/*
-	 * We could emulate PCI or mSGDMA, but not together simultaneously
-	 * since they setup interrupt handler for the same FIFO RX channel.
-	 */
-
-#ifdef CONFIG_EMUL_PCI
-	error = emul_pci_init(&pci0_sc);
-	if (error)
-		panic("Can't init PCI\n");
-
-	req_count = 0;
-
-	error = e82545_setup_fifo(&fifo0_sc, &fifo1_sc);
-	if (error)
-		panic("Can't setup FIFOs\n");
-#else
-	error = emul_msgdma_rx_init(&msgdma1_sc);
-	if (error)
-		panic("Can't setup msgdma\n");
-#endif
-
-	printf("%s: device-model initialized\n", __func__);
-}
-
-void
-dm_loop(struct epw_softc *sc)
-{
-	struct epw_request req;
-	int ret;
-
-	printf("%s: enter\n", __func__);
-
-	while (1) {
-		if (epw_request(sc, &req) != 0) {
-			critical_enter();
-			if (req_count++ % 500 == 0)
-				printf("%s: req count %d\n",
-				    __func__, req_count);
-
-			ret = dm_request(sc, &req);
-			epw_reply(sc, &req);
-			critical_exit();
-		}
-
-#ifdef CONFIG_EMUL_PCI
-		/* Poll Intel E1000 descriptors. */
-		e1000_poll();
-
-		/* Poll for AHCI SATA request. */
-		blockif_thr(NULL);
-#else
-		/* Poll mSGDMA TX/RX descriptors. */
-		emul_msgdma_poll(&msgdma0_sc);
-		emul_msgdma_poll(&msgdma1_sc);
-
-#endif
-	}
-}
-#endif
-
-static int req_count;
 
 static int
 dm_request(struct epw_softc *sc, struct epw_request *req)
