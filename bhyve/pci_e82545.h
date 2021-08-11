@@ -34,11 +34,7 @@
 #ifndef _PCI_E82545_H_
 #define _PCI_E82545_H_
 
-#include <dev/altera/fifo/fifo.h>
-
 void e1000_poll(void);
-int e82545_setup_fifo(struct altera_fifo_softc *fifo_tx,
-    struct altera_fifo_softc *fifo_rx);
 void e82545_itr_callback(void *arg);
 
 struct e82545_softc;

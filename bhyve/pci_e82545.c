@@ -67,7 +67,6 @@
 #include "device-model.h"
 #include "bhyve_support.h"
 #include "pthread.h"
-#include <dev/altera/fifo/fifo.h>
 #include <sys/linker_set.h>
 #define	TH_FIN		0x01
 #define	TH_SYN		0x02
@@ -386,11 +385,8 @@ struct e82545_softc {
 	/* EEPROM data */
 	uint16_t eeprom_data[E82545_NVM_EEPROM_SIZE];
 
-	/* Device-model data */
-	struct altera_fifo_softc *fifo_tx;
-	struct altera_fifo_softc *fifo_rx;
+	/* Device-model. */
 	struct mdx_callout mevpitr_callout;
-	struct mdx_semaphore sem;
 };
 
 struct e82545_softc *e82545_sc;
@@ -1630,73 +1626,6 @@ e1000_poll(void)
 	intr_restore(intr);
 #endif
 }
-
-#if 0
-static void
-e1000_fifo_work(void *arg)
-{
-	struct e82545_softc *sc;
-	int reg;
-
-	sc = arg;
-
-	printf("%s: startup\n", __func__);
-                
-	while (1) {
-		mdx_sem_wait(&sc->sem);
-
-		reg = intr_disable();
-		e82545_rx_poll(sc);
-		intr_restore(reg);
-	}
-}
-
-static void
-e1000_fifo_intr(void *arg)
-{
-	struct e82545_softc *sc;
- 
-	sc = arg;
- 
-	mdx_sem_post(&sc->sem);
-}
-
-int
-e82545_setup_fifo(struct altera_fifo_softc *fifo_tx,
-    struct altera_fifo_softc *fifo_rx)
-{
-	struct e82545_softc *sc;
-	struct thread *td;
-
-	sc = e82545_sc;
-	if (sc == NULL)
-		return (-1);
-
-	sc->fifo_tx = fifo_tx;
-	sc->fifo_rx = fifo_rx;
-
-	fifo_interrupts_disable(fifo_tx);
-	fifo_interrupts_disable(fifo_rx);
-
-	mdx_sem_init(&sc->sem, 1);
-
-	td = mdx_thread_create("work", 1, 100000,
-	    4096, e1000_fifo_work, sc);
-	if (td == NULL)
-		return (-1);   
-
-	/* RISCVTODO */
-	//md_set_ddc(td, cheri_getdefault());
-	mdx_sched_add(td);
-
-	printf("%s: Enabling RX interrupts\n", __func__);
-	fifo_rx->cb = e1000_fifo_intr;
-	fifo_rx->cb_arg = sc;
-	fifo_interrupts_enable(fifo_rx, FIFO_RX_EVENTS);
-
-	return (0);
-}
-#endif
 
 static void
 e82545_tx_start(struct e82545_softc *sc)
