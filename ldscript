@@ -3,8 +3,8 @@ ENTRY(_start)
 
 MEMORY
 {
-	sram0 (wxa!ri)  : ORIGIN = 0xf8000000, LENGTH = 8M
-	sram1 (wxa!ri)  : ORIGIN = 0xf8800000, LENGTH = 120M /* malloc */
+	sram0 (rwx)  : ORIGIN = 0xf8000000, LENGTH = 8M
+	sram1 (rwx)  : ORIGIN = 0xf8800000, LENGTH = 120M /* malloc */
 }
 
 SECTIONS
@@ -27,6 +27,22 @@ SECTIONS
 
 	.rodata : {
 		*(.rodata)
+	} > sram0
+
+	.rodata.str1.1 : {
+		*(.rodata.str1.1)
+	} > sram0
+
+	set_pci_devemu_set : {
+		*(set_pci_devemu_set)
+	} > sram0
+
+	set_lpc_sysres_set : {
+		*(set_lpc_sysres_set)
+	} > sram0
+
+	set_inout_port_set : {
+		*(set_inout_port_set)
 	} > sram0
 
 	/* Ensure _smem is associated with the next section */
