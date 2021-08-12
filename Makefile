@@ -1,4 +1,4 @@
-APP = qemu-riscv64
+APP = device-model-riscv
 
 OSDIR = mdepx
 OBJDIR = obj
@@ -19,9 +19,9 @@ all:
 	@${CMD} -j mdepx.conf
 	${CROSS_COMPILE}objcopy -O binary ${OBJDIR}/${APP}.elf	\
 		${OBJDIR}/${APP}.bin
-	@echo /usr/sbin/bm -Rl /root/qemu-riscv64.bin
+	@echo /usr/sbin/bm -Rl /root/${APP}.bin
 	@mkdir -p ${HOME}/cheri/extra-files/root/
-	@cp obj/qemu-riscv64.bin ${HOME}/cheri/extra-files/root/
+	@cp obj/${APP}.bin ${HOME}/cheri/extra-files/root/
 
 clean:
 	@rm -rf obj/*
