@@ -15,7 +15,7 @@ CheriBSD branch is [device-model-riscv](https://github.com/CTSRD-CHERI/cheribsd/
 
 From the CheriBSD that is running on 1st core:
 
-    $ /usr/sbin/bm -Rl qemu-riscv64.bin
+    $ /usr/sbin/bm -Rl device-model-riscv.bin
 
 ### Console access to device-model.
     Replace 1 with your pts from QEMU output message on char device redirection
