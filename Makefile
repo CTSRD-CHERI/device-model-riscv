@@ -15,8 +15,15 @@ export AFLAGS = ${CFLAGS}
 
 CMD = python3 -B ${OSDIR}/tools/emitter.py
 
-all:
+all: release copy
+release:
 	@${CMD} -j mdepx.conf
+
+debug: _debug copy
+_debug:
+	@${CMD} -d -j mdepx.conf
+
+copy:
 	${CROSS_COMPILE}objcopy -O binary \
 		${OBJDIR}/${APP}.elf ${OBJDIR}/${APP}.bin
 	@echo /usr/sbin/bm -Rl /root/${APP}.bin
