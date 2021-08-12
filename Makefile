@@ -17,8 +17,8 @@ CMD = python3 -B ${OSDIR}/tools/emitter.py
 
 all:
 	@${CMD} -j mdepx.conf
-	${CROSS_COMPILE}objcopy -O binary ${OBJDIR}/${APP}.elf	\
-		${OBJDIR}/${APP}.bin
+	${CROSS_COMPILE}objcopy -O binary \
+		${OBJDIR}/${APP}.elf ${OBJDIR}/${APP}.bin
 	@echo /usr/sbin/bm -Rl /root/${APP}.bin
 	@mkdir -p ${HOME}/cheri/extra-files/root/
 	@cp obj/${APP}.bin ${HOME}/cheri/extra-files/root/
