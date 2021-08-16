@@ -48,7 +48,6 @@
 #include <assert.h>
 #include <inttypes.h>
 
-#define	MIN(a,b)	(((a)<(b))?(a):(b))
 #include "pthread.h"
 #include "bhyve_support.h"
 #include <md5/md5.h>

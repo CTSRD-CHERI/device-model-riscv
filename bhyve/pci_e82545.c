@@ -265,9 +265,6 @@ static int e82545_debug = 0;
 #define DPRINTF(msg,params...) if (e82545_debug) printf("e82545: " msg, params)
 #define WPRINTF(msg,params...) printf("e82545: " msg, params)
 
-#define	MIN(a,b) (((a)<(b))?(a):(b))
-#define	MAX(a,b) (((a)>(b))?(a):(b))
-
 /* s/w representation of the RAL/RAH regs */
 struct  eth_uni {
 	int		eu_valid;

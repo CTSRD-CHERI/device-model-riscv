@@ -86,7 +86,7 @@ board_init(void)
 
 	/* Timer */
 
-	e300g_clint_init(&clint_sc, CLINT_BASE, BOARD_CPU_FREQ);
+	e300g_clint_init(&clint_sc, (void *)CLINT_BASE, BOARD_CPU_FREQ);
 	plic_init(&dev_plic, PLIC_BASE, 0, 1);
 	plic_init(&dev_plic, PLIC_BASE, 1, 3);
 
