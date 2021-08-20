@@ -34,6 +34,7 @@
 #include <sys/sem.h>
 #include <sys/list.h>
 #include <sys/smp.h>
+#include <sys/cheri.h>
 
 #include <riscv/sifive/e300g_clint.h>
 #include <riscv/include/plic.h>
@@ -69,6 +70,7 @@ uart_getchar(void)
 void
 board_init(void)
 {
+	capability cap;
 
 	/* Initialize malloc */
 
@@ -86,9 +88,14 @@ board_init(void)
 
 	/* Timer */
 
-	e300g_clint_init(&clint_sc, (void *)CLINT_BASE, BOARD_CPU_FREQ);
-	plic_init(&dev_plic, PLIC_BASE, 0, 1);
-	plic_init(&dev_plic, PLIC_BASE, 1, 3);
+	cap = mdx_getdefault();
+	cap = mdx_setoffset(cap, CLINT_BASE);
+	e300g_clint_init(&clint_sc, cap, BOARD_CPU_FREQ);
+
+	cap = mdx_getdefault();
+	cap = mdx_setoffset(cap, PLIC_BASE);
+	plic_init(&dev_plic, cap, 0, 1);
+	plic_init(&dev_plic, cap, 1, 3);
 
 	/* Release secondary core(s) */
 
