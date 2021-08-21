@@ -57,7 +57,7 @@ int
 main(void)
 {
 
-	printf("%s\n", __func__);
+	printf("%s: starting on hart %d\n", __func__, PCPU_GET(cpuid));
 
 	capability base, window;
 	base = (capability)0x50000000;
