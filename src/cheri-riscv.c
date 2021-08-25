@@ -111,25 +111,12 @@ inline void * cheri_derive_data_cap( void * src,
                                      size_t size,
                                      size_t perms )
 {
-        char buf[1024];
     void * returned_cap = src;
 
-        strfcap(buf, 1024, "%xa %l %o %P %A", (uintcap_t)returned_cap);
-        printf("%s: cap %s\n", __func__, buf);
-
     returned_cap = __builtin_cheri_perms_and( returned_cap, perms );
-
-        strfcap(buf, 1024, "%xa %l %o %P %A", (uintcap_t)returned_cap);
-        printf("%s: cap %s\n", __func__, buf);
-
-printf("%s: new address %lx\n", __func__, address);
     returned_cap = __builtin_cheri_address_set( returned_cap, address );
-
-        strfcap(buf, 1024, "%xa %l %o %P %A", (uintcap_t)returned_cap);
-        printf("%s: cap %s\n", __func__, buf);
-
-	
     returned_cap = __builtin_cheri_bounds_set( returned_cap, size );
+
     return returned_cap;
 }
 
