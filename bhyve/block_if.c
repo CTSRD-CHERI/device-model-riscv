@@ -70,6 +70,8 @@
 #define	dprintf(fmt, ...)
 #endif
 
+extern void *pvAlmightyDataCap;
+
 struct blockif_softc {
 	struct blockif_ctxt *bc;
 	uint8_t *buf;
@@ -367,7 +369,7 @@ blockif_open(const char *optstr, const char *ident)
 	bc->bc_rdonly = ro;
 
 #ifdef __CHERI_PURE_CAPABILITY__
-	bc->bc_base = cheri_setoffset(cheri_getdefault(), DM_BASE + 0x03000000);
+	bc->bc_base = cheri_setoffset(pvAlmightyDataCap, DM_BASE + 0x03000000);
 #else
 	bc->bc_base = (void *)(DM_BASE + 0x03000000);
 #endif
