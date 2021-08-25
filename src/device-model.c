@@ -105,6 +105,7 @@ dm_init(struct epw_softc *sc)
 
 #ifdef MDX_VIRTIO
 	csr_set(sie, SIE_SEIE);
+	printf("%s: initializing virtio\n", __func__);
 	virtio_init();
 #endif
 }
