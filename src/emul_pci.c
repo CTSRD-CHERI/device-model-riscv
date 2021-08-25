@@ -64,6 +64,8 @@
 #define	dprintf(fmt, ...)
 #endif
 
+extern void *pvAlmightyDataCap;
+
 static int
 emul_mem(struct pci_softc *sc, struct epw_request *req,
     uint64_t offset)
@@ -194,9 +196,7 @@ emul_pci_init(struct pci_softc *sc)
 	if (sc->ctx == NULL)
 		return (-1);
 
-#if 0
-	sc->ctx->cap = cheri_getdefault();
-#endif
+	sc->ctx->cap = pvAlmightyDataCap;
 
 	bhyve_pci_init(sc->ctx);
 
