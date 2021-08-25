@@ -33,6 +33,7 @@
 
 #include <sys/cdefs.h>
 #include <sys/systm.h>
+#include <sys/cheri.h>
 
 #include <dev/virtio/virtio.h>
 #include <dev/virtio/virtio-blk.h>
@@ -63,6 +64,8 @@ static struct virtio_device *vd;
 static struct virtio_net *vnet;
 static char netbuf[VIRTIO_MAX_BUF];
 
+extern void *pvAlmightyDataCap;
+
 static void
 net_intr(void *arg, int irq)
 {
@@ -77,8 +80,13 @@ net_intr(void *arg, int irq)
 void
 virtio_init(void)
 {
+	capability cap;
 
-	vd = virtio_setup_vd((void *)VIRTIO_NET_MMIO_BASE);
+	cap = pvAlmightyDataCap;
+	cap = mdx_setoffset(cap, VIRTIO_NET_MMIO_BASE);
+	cap = mdx_setbounds(cap, 0x10000000);
+
+	vd = virtio_setup_vd(cap);
 	vnet = virtionet_open(vd);
 
 	dprintf("vnet is %p\n", vnet);
