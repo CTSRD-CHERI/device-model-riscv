@@ -34,6 +34,8 @@
 #include <sys/cdefs.h>
 #include <sys/malloc.h>
 #include <sys/cheri.h>
+#include <sys/systm.h>
+#include <sys/io.h>
 
 #include <machine/frame.h>
 #include <machine/cpuregs.h>
@@ -61,13 +63,18 @@
 #define	dprintf(fmt, ...)
 #endif
 
+#define	PLIC_BASE	0x0c001000
+
 #if 0
 extern struct mdx_device beripic0;
 #endif
 
+extern void *pvAlmightyDataCap;
+
 void
 pci_irq_assert(struct pci_devinst *pi)
 {
+	capability cap;
 	uint32_t irq;
 
 	dprintf("%s: pi_name %s pi_bus %d pi_slot %d pi_func %d\n",
@@ -79,19 +86,19 @@ pci_irq_assert(struct pci_devinst *pi)
 		irq = DM_AHCI_INTR;
 	else if (strcmp(pi->pi_name, "e1000-pci-0") == 0)
 		irq = DM_E1000_INTR;
+	else
+		panic("%s: unknown IRQ to assert\n", __func__);
 
-	if (irq) {
-		/* RISCVTODO */
-		//beripic_ip_set(&beripic0, irq);
-	}
+	cap = mdx_setoffset(pvAlmightyDataCap, PLIC_BASE);
+	cap = mdx_setbounds(cap, 8);
 
 	/* AHCI TODO: Setting IRQ 33 starting from 0x1000 */
 	if (strcmp(pi->pi_name, "ahci-hd-pci-1") == 0)
-		*(volatile uint32_t *)0x0c001004 = 2;
+		mdx_iowrite_uint32(cap, 0x4, 2);
 
 	/* E1000 TODO: Setting IRQ 32 starting from 0x1000 */
 	else if (strcmp(pi->pi_name, "e1000-pci-0") == 0)
-		*(volatile uint32_t *)0x0c001004 = 1;
+		mdx_iowrite_uint32(cap, 0x4, 1);
 }
 
 void
@@ -108,11 +115,6 @@ pci_irq_deassert(struct pci_devinst *pi)
 		irq = DM_AHCI_INTR;
 	else if (strcmp(pi->pi_name, "e1000-pci-0") == 0)
 		irq = DM_E1000_INTR;
-
-	if (irq) {
-		/* RISCVTODO */
-		//beripic_ip_clear(&beripic0, irq);
-	}
 }
 
 int
