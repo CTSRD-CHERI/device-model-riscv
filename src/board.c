@@ -84,6 +84,9 @@ board_init(void)
 	cap = mdx_setoffset(cap, 0xf8800000);
 
 	malloc_init();
+#ifdef __CHERI_PURE_CAPABILITY__
+	mdx_fl_init_datacap(cap);
+#endif
 	malloc_add_region(cap, 0x7800000);
 
 	/* Register UART */
