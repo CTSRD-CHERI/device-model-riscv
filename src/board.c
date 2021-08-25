@@ -57,6 +57,9 @@ static struct plic_softc plic_sc;
 struct mdx_device dev_uart = { .sc = &uart_sc };
 struct mdx_device dev_plic = { .sc = &plic_sc };
 
+void *pvAlmightyDataCap;
+void *pvAlmightyCodeCap;
+
 char
 uart_getchar(void)
 {
@@ -72,14 +75,23 @@ board_init(void)
 {
 	capability cap;
 
+	pvAlmightyDataCap = mdx_getdefault();
+	pvAlmightyCodeCap = NULL;
+
 	/* Initialize malloc */
 
+	cap = mdx_getdefault();
+	cap = mdx_setoffset(cap, 0xf8800000);
+
 	malloc_init();
-	malloc_add_region((void *)0xf8800000, 0x7800000);
+	malloc_add_region(cap, 0x7800000);
 
 	/* Register UART */
+	cap = mdx_getdefault();
+	cap = mdx_setoffset(cap, UART_BASE);
+	cap = mdx_setbounds(cap, 1024);
 
-	uart_16550_init(&dev_uart, (void *)UART_BASE, 0, UART_CLOCK_RATE);
+	uart_16550_init(&dev_uart, cap, 0, UART_CLOCK_RATE);
 	mdx_uart_setup(&dev_uart, DEFAULT_BAUDRATE,
 	    UART_DATABITS_5,
 	    UART_STOPBITS_1,
