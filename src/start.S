@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2019 Ruslan Bukin <br@bsdpad.com>
+ * Copyright (c) 2019-2021 Ruslan Bukin <br@bsdpad.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,18 +33,6 @@ ASM_ENTRY(_start)
 	la	t0, cpu_exception_handler
 	csrw	stvec, t0
 
-	li	t0, 0
-#if 0
-	bne	a0, t0, mpentry
-#endif
-
-#if 0
-	la	t0, cpu_lottery
-	li	t1, 1
-	amoadd.w t0, t1, 0(t0)
-	bnez	t0, mpentry
-#endif
-
 	/* Clear BSS. */
 	la	t0, _sbss
 	la	t1, _ebss
@@ -68,30 +56,3 @@ ASM_ENTRY(_start)
 	j	md_init
 
 	/* NOT REACHED */
-
-ASM_ENTRY(mpentry)
-#ifdef MDX_SCHED_SMP
-	la	t0, __riscv_boot_ap
-	add	t0, t0, a0
-
-1:
-	lb	t1, 0(t0)
-	beqz	t1, 1b
-
-	la	t0, idle_thread_stack
-	li	t1, MDX_THREAD_STACK_SIZE
-	mulw	t2, t1, a0
-	add	t2, t2, t1
-	add	sp, t2, t0
-
-	fence
-
-	j	md_init_secondary
-#else
-1:
-	j	1b
-#endif
-END(mpentry)
-
-cpu_lottery:
-	.space 4
