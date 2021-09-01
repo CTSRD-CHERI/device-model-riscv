@@ -1,17 +1,25 @@
 # device-model-riscv
 
-This is work in progress RISC-V version of [device-model](https://github.com/CTSRD-CHERI/device-model).
+This is RISC-V version of [device-model](https://github.com/CTSRD-CHERI/device-model).
+
+This app emulates AHCI block and Intel E1000 Ethernet devices using a secondary core of RISC-V CPU.
 
 CheriBSD branch is [device-model-riscv](https://github.com/CTSRD-CHERI/cheribsd/tree/device-model-riscv).
 
 ### CheriBSD startup on the 1st core
-    $ ./cheribuild.py run-riscv64 "--run-riscv64/extra-options=-smp 2	\
-	-serial mon:stdio -serial pty -accel tcg,thread=multi		\
-	-bios /path/to/opensbi/lp64/sifive/fu540/firmware/fw_jump.elf	\
+    $ ./cheribuild.py run-riscv64-purecap				\
+	"--run-riscv64-purecap/extra-options=-smp 2 -serial mon:stdio	\
+	-serial pty							\
+	-accel tcg,thread=multi						\
 	-device virtio-net-device,netdev=net0				\
-	-netdev tap,id=net0,ifname=tap0,script=no,downscript=no" -d
+	-netdev tap,id=net0,ifname=tap0,script=no,downscript=no		\
+	-bios ${HOME}/cheri/build/bbl-baremetal-riscv64-purecap-build/bbl" -d
 
 ### Device-model-riscv (this project) startup on the 2nd core
+
+First, build it:
+
+    $ make purecap
 
 From the CheriBSD that is running on 1st core:
 
