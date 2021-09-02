@@ -192,6 +192,7 @@ struct e1000_tx_desc {
 
 /* Context descriptor */
 struct e1000_context_desc {
+	uint64_t reserved; /* align for capabilities */
 	union {
 		uint32_t ip_config;
 		struct {
