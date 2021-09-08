@@ -35,6 +35,7 @@
 #include <sys/list.h>
 #include <sys/smp.h>
 #include <sys/cheri.h>
+#include <sys/of.h>
 
 #include <riscv/sifive/e300g_clint.h>
 #include <riscv/include/plic.h>
@@ -102,8 +103,12 @@ board_init(void)
 	    UART_PARITY_NONE);
 	mdx_console_register_uart(&dev_uart);
 
-	/* Timer */
+	if (mdx_of_check_header() == 0)
+		printf("%s: FDT header OK\n", __func__);
+	else
+		printf("%s: FDT header BAD\n", __func__);
 
+	/* Timer */
 	cap = mdx_getdefault();
 	cap = mdx_setoffset(cap, CLINT_BASE);
 	e300g_clint_init(&clint_sc, cap, BOARD_CPU_FREQ);

@@ -30,6 +30,9 @@ ASM_ENTRY(_start)
 	fence.i
 	fence
 
+	mv	s0, a0
+	mv	s1, a1
+
 #ifdef __CHERI_PURE_CAPABILITY__
 .option push
 .option nocapmode
@@ -69,12 +72,12 @@ ASM_ENTRY(_start)
 #endif
 
 	/* Clear BSS. */
-	cllc	cs0,	_sbss
-	cllc	cs1,	_ebss
+	cllc	ct0,	_sbss
+	cllc	ct1,	_ebss
 1:
-	csb		zero, 0(cs0)
-	cincoffset	cs0, cs0, 1
-	bltu		s0, s1, 1b
+	csb		zero, 0(ct0)
+	cincoffset	ct0, ct0, 1
+	bltu		t0, t1, 1b
 
 #if 0
 	la	t0, _sbss
@@ -102,6 +105,14 @@ ASM_ENTRY(_start)
 	cllc		ca1, start_purecap
 	cjalr		ca1
 
+#ifdef MDX_OF
+	cspecialr	ca0, ddc
+	csetoffset	ca0, ca0, s1
+	cllc		ca1, mdx_of_install_dtbp
+	cjalr		ca1
+#endif
+
+	li		a0,	0
 	clgc		cra, md_init
 	cjalr		cra
 
