@@ -19,12 +19,6 @@ SECTIONS
 		*(.text)
 	} > sram0
 
-	.sysinit : {
-		__sysinit_start = ABSOLUTE(.);
-		*(.sysinit)
-		__sysinit_end = ABSOLUTE(.);
-	} > sram0
-
 	.rodata : {
 		*(.rodata)
 	} > sram0
@@ -55,6 +49,11 @@ SECTIONS
 	.sdata : {
 		_sdata = ABSOLUTE(.);
 		*(.sdata)
+
+		__start_set_sysinit_set = ABSOLUTE(.);
+		*(set_sysinit*)
+		__stop_set_sysinit_set = ABSOLUTE(.);
+
 		_edata = ABSOLUTE(.);
 	} > sram0
 
