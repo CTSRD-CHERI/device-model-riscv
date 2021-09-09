@@ -112,7 +112,7 @@ ASM_ENTRY(_start)
 	cjalr		ca1
 #endif
 
-	li		a0,	0
+	mv		a0,	s0
 	clgc		cra, md_init
 	cjalr		cra
 
