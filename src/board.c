@@ -75,6 +75,7 @@ void
 board_init(void)
 {
 	capability cap;
+	int error;
 
 	pvAlmightyDataCap = mdx_getdefault();
 	pvAlmightyCodeCap = NULL;
@@ -103,10 +104,11 @@ board_init(void)
 	    UART_PARITY_NONE);
 	mdx_console_register_uart(&dev_uart);
 
-	if (mdx_of_check_header() == 0)
-		printf("%s: FDT header OK\n", __func__);
+	error = mdx_of_check_header();
+	if (error)
+		printf("%s: FDT header BAD, error %d\n", __func__, error);
 	else
-		printf("%s: FDT header BAD\n", __func__);
+		printf("%s: FDT header OK\n", __func__);
 
 	/* Timer */
 	cap = mdx_getdefault();
