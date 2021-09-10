@@ -25,6 +25,9 @@ debug_purecap:
 objdump:
 	${CROSS_COMPILE}objdump -S ${OBJDIR}/${APP}.elf | less
 
+readelf:
+	${CROSS_COMPILE}readelf -a ${OBJDIR}/${APP}.elf | less
+
 copy:
 	${CROSS_COMPILE}objcopy -O binary \
 		${OBJDIR}/${APP}.elf ${OBJDIR}/${APP}.bin
