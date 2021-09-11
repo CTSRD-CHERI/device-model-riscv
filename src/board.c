@@ -51,12 +51,8 @@
 
 extern uint8_t __riscv_boot_ap[MDX_CPU_MAX];
 
-static struct uart_16550_softc uart_sc;
 static struct clint_softc clint_sc;
-static struct plic_softc plic_sc;
-
-struct mdx_device dev_uart = { .sc = &uart_sc };
-struct mdx_device dev_plic = { .sc = &plic_sc };
+static mdx_device_t dev_uart;
 
 void *pvAlmightyDataCap;
 void *pvAlmightyCodeCap;
@@ -66,7 +62,7 @@ uart_getchar(void)
 {
 	char a;
 
-	a = mdx_uart_getc(&dev_uart);
+	a = mdx_uart_getc(dev_uart);
 
 	return (a);
 }
@@ -81,10 +77,8 @@ board_init(void)
 	pvAlmightyCodeCap = NULL;
 
 	/* Initialize malloc */
-
 	cap = mdx_getdefault();
 	cap = mdx_setoffset(cap, 0xf8800000);
-
 #ifdef __CHERI_PURE_CAPABILITY__
 	malloc_init_purecap(cap);
 #else
@@ -92,6 +86,17 @@ board_init(void)
 #endif
 	malloc_add_region(cap, 0x7800000);
 
+	/* Timer */
+	cap = mdx_getdefault();
+	cap = mdx_setoffset(cap, CLINT_BASE);
+	e300g_clint_init(&clint_sc, cap, BOARD_CPU_FREQ);
+
+	mi_startup();
+
+	dev_uart = mdx_device_lookup_by_name("uart_16550", 0);
+	mdx_console_register_uart(dev_uart);
+
+#if 0
 	/* Register UART */
 	cap = mdx_getdefault();
 	cap = mdx_setoffset(cap, UART_BASE);
@@ -103,6 +108,7 @@ board_init(void)
 	    UART_STOPBITS_1,
 	    UART_PARITY_NONE);
 	mdx_console_register_uart(&dev_uart);
+#endif
 
 	error = mdx_of_check_header();
 	if (error)
@@ -110,15 +116,12 @@ board_init(void)
 	else
 		printf("%s: FDT header OK\n", __func__);
 
-	/* Timer */
-	cap = mdx_getdefault();
-	cap = mdx_setoffset(cap, CLINT_BASE);
-	e300g_clint_init(&clint_sc, cap, BOARD_CPU_FREQ);
-
+#if 0
 	cap = mdx_getdefault();
 	cap = mdx_setoffset(cap, PLIC_BASE);
 	plic_init(&dev_plic, cap, 0, 1);
 	plic_init(&dev_plic, cap, 1, 3);
+#endif
 
 	/* Release secondary core(s) */
 

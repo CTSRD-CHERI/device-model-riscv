@@ -58,7 +58,6 @@
 #endif
 
 extern struct e82545_softc *e82545_sc;
-extern struct mdx_device dev_plic;
 
 static struct virtio_device *vd;
 static struct virtio_net *vnet;
@@ -80,6 +79,7 @@ net_intr(void *arg, int irq)
 void
 virtio_init(void)
 {
+	mdx_device_t dev;
 	capability cap;
 
 	cap = pvAlmightyDataCap;
@@ -91,8 +91,9 @@ virtio_init(void)
 
 	dprintf("vnet is %p\n", vnet);
 
-	mdx_intc_setup(&dev_plic, 7, net_intr, NULL);
-	mdx_intc_enable(&dev_plic, 7);
+	dev = mdx_device_lookup_by_name("plic", 0);
+	mdx_intc_setup(dev, 7, net_intr, NULL);
+	mdx_intc_enable(dev, 7);
 }
 
 int
