@@ -38,5 +38,6 @@ From the CheriBSD that is running on 1st core:
 
 This includes PCI itself, E1000 and AHCI controllers:
 
+    $ sleep 5 # ensure device-model is fully started
     $ devctl disable pci0
     $ devctl enable pci0
