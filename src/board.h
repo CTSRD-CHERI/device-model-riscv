@@ -29,6 +29,4 @@
 
 char uart_getchar(void);
 
-#define	BOARD_CPU_FREQ		(10000000)
-
 #endif /* !_SRC_BOARD_H_ */

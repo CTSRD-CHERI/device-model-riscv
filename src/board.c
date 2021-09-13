@@ -37,7 +37,6 @@
 #include <sys/cheri.h>
 #include <sys/of.h>
 
-#include <riscv/include/clint.h>
 #include <riscv/include/plic.h>
 #include <dev/uart/uart_16550.h>
 
@@ -51,7 +50,6 @@
 
 extern uint8_t __riscv_boot_ap[MDX_CPU_MAX];
 
-static struct clint_softc clint_sc;
 static mdx_device_t dev_uart;
 
 void *pvAlmightyDataCap;
@@ -85,11 +83,6 @@ board_init(void)
 	malloc_init();
 #endif
 	malloc_add_region(cap, 0x7800000);
-
-	/* Timer */
-	cap = mdx_getdefault();
-	cap = mdx_setoffset(cap, CLINT_BASE);
-	clint_init(&clint_sc, cap, BOARD_CPU_FREQ);
 
 	mi_startup();
 
