@@ -1,47 +1,42 @@
 OUTPUT_ARCH("riscv")
 ENTRY(_start)
 
-MEMORY
-{
-	sram0 (rwx)  : ORIGIN = 0xf8000000, LENGTH = 8M
-	sram1 (rwx)  : ORIGIN = 0xf8800000, LENGTH = 120M /* malloc */
-}
-
 SECTIONS
 {
-	. = 0xf8000000;
+	. = kernbase;
 
-	.start . : {
-		*start.o(.text)
-	} > sram0
+	.start . : AT(kernbase - dmapbase)
+	{
+		*start-purecap.o(.text)
+	}
 
 	.text : {
 		*(.text)
-	} > sram0
+	}
 
 	.rodata : {
 		*(.rodata)
-	} > sram0
+	}
 
 	.rodata.str1.1 : {
 		*(.rodata.str1.1)
-	} > sram0
+	}
 
 	set_pci_devemu_set : {
 		*(set_pci_devemu_set)
-	} > sram0
+	}
 
 	set_lpc_sysres_set : {
 		*(set_lpc_sysres_set)
-	} > sram0
+	}
 
 	set_inout_port_set : {
 		*(set_inout_port_set)
-	} > sram0
+	}
 
 	__cap_relocs :  ALIGN(16) {
 		*(__cap_relocs)
-	} > sram0
+	}
 
 	/* Ensure _smem is associated with the next section */
 	. = .;
@@ -55,12 +50,12 @@ SECTIONS
 		__stop_set_sysinit_set = ABSOLUTE(.);
 
 		_edata = ABSOLUTE(.);
-	} > sram0
+	}
 
 	.bss : {
 		_sbss = ABSOLUTE(.);
 		*(.bss COMMON)
 		*(.sbss)
 		_ebss = ABSOLUTE(.);
-	} > sram0
+	}
 }
