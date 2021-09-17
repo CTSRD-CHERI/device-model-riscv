@@ -39,6 +39,7 @@
 
 #include <machine/frame.h>
 #include <machine/cpuregs.h>
+#include <machine/vmparam.h>
 
 #if 0
 #include <mips/beri/beri_epw.h>
@@ -89,7 +90,7 @@ pci_irq_assert(struct pci_devinst *pi)
 	else
 		panic("%s: unknown IRQ to assert\n", __func__);
 
-	cap = mdx_setoffset(pvAlmightyDataCap, PLIC_BASE);
+	cap = mdx_setoffset(pvAlmightyDataCap, PHYS_TO_DMAP(PLIC_BASE));
 	cap = mdx_setbounds(cap, 8);
 
 	/* AHCI TODO: Setting IRQ 33 starting from 0x1000 */
@@ -180,9 +181,7 @@ paddr_guest2host(struct vmctx *ctx, uintptr_t gaddr, size_t len)
 #ifdef CONFIG_IOMMU
 	addr = gaddr;
 #else
-	/* RISCVTODO */
-	//addr = gaddr | MIPS_XKPHYS_UNCACHED_BASE;
-	addr = gaddr;
+	addr = PHYS_TO_DMAP(gaddr);
 #endif
 
 	dprintf("%s: gaddr %lx, addr %lx, len %d\n",
@@ -200,6 +199,8 @@ paddr_guest2host(struct vmctx *ctx, uintptr_t gaddr, size_t len)
 capability
 cap_guest2host(struct vmctx *ctx, capability gaddr, size_t len)
 {
+
+	gaddr = mdx_incoffset(gaddr, DMAPBASE);
 
 	return (gaddr);
 }

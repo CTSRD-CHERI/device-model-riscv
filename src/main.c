@@ -39,6 +39,7 @@
 
 #include <mips/beri/beri_epw.h>
 
+#include <machine/vmparam.h>
 #include <machine/cpuregs.h>
 #include <machine/cpufunc.h>
 
@@ -81,8 +82,8 @@ main(void)
 	printf("%s: starting on hart %d\n", __func__, PCPU_GET(cpuid));
 
 	cap = pvAlmightyDataCap;
-	base = mdx_setoffset(cap, 0x50000000);
-	window = mdx_setoffset(cap, 0x60000000);
+	base = mdx_setoffset(cap, PHYS_TO_DMAP(0x50000000));
+	window = mdx_setoffset(cap, PHYS_TO_DMAP(0x60000000));
 
 	epw_init(&epw_sc, base, window);
 
@@ -93,15 +94,6 @@ main(void)
 	dm_loop(&epw_sc);
 
 	panic("dm_loop returned");
-
-	uint8_t *addr;
-	addr = (void *)0x50000000;
-
-	while (1) {
-		printf("hello world %x\n", *addr);
-	}
-
-	callout_test();
 
 	/* NOT REACHED */
 

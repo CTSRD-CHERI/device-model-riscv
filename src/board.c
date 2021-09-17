@@ -37,6 +37,8 @@
 #include <sys/cheri.h>
 #include <sys/of.h>
 
+#include <machine/vmparam.h>
+
 #include <riscv/include/plic.h>
 #include <dev/uart/uart_16550.h>
 
@@ -76,7 +78,7 @@ board_init(void)
 
 	/* Initialize malloc */
 	cap = mdx_getdefault();
-	cap = mdx_setoffset(cap, 0xf8800000);
+	cap = mdx_setoffset(cap, PHYS_TO_DMAP(0xf8800000));
 #ifdef __CHERI_PURE_CAPABILITY__
 	malloc_init_purecap(cap);
 #else

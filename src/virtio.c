@@ -35,6 +35,8 @@
 #include <sys/systm.h>
 #include <sys/cheri.h>
 
+#include <machine/vmparam.h>
+
 #include <dev/virtio/virtio.h>
 #include <dev/virtio/virtio-blk.h>
 #include <dev/virtio/virtio-net.h>
@@ -45,7 +47,7 @@
 
 #include "virtio.h"
 
-#define	VIRTIO_NET_MMIO_BASE	0x10007000
+#define	VIRTIO_NET_MMIO_BASE	PHYS_TO_DMAP(0x10007000)
 #define	VIRTIO_MAX_BUF		8192
 
 #define	VIRTIO_DEBUG

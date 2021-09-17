@@ -47,6 +47,7 @@
 #include <limits.h>
 
 #include <machine/atomic.h>
+#include <machine/vmparam.h>
 
 #include "ahci.h"
 #include "bhyve_support.h"
@@ -369,9 +370,10 @@ blockif_open(const char *optstr, const char *ident)
 	bc->bc_rdonly = ro;
 
 #ifdef __CHERI_PURE_CAPABILITY__
-	bc->bc_base = cheri_setoffset(pvAlmightyDataCap, DM_BASE + 0x03000000);
+	bc->bc_base = cheri_setoffset(pvAlmightyDataCap,
+	    PHYS_TO_DMAP(DM_BASE) + 0x03000000);
 #else
-	bc->bc_base = (void *)(DM_BASE + 0x03000000);
+	bc->bc_base = (void *)(PHYS_TO_DMAP(DM_BASE) + 0x03000000);
 #endif
 
 	bc->bc_size = 0x00d00000;
