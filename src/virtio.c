@@ -89,9 +89,10 @@ virtio_init(void)
 	cap = mdx_setbounds(cap, 0x10000000);
 
 	vd = virtio_setup_vd(cap);
-	vnet = virtionet_open(vd);
+	dprintf("%s: vd is %p\n", __func__, vd);
 
-	dprintf("vnet is %p\n", vnet);
+	vnet = virtionet_open(vd);
+	dprintf("%s: vnet is %p\n", __func__, vnet);
 
 	dev = mdx_device_lookup_by_name("plic", 0);
 	mdx_intc_setup(dev, 7, net_intr, NULL);
@@ -123,6 +124,7 @@ dm_process_tx(struct iovec *iov, int iovcnt)
 {
 	int tot_len;
 	void *buf;
+	int error;
 	int len;
 	int i;
 
@@ -141,5 +143,6 @@ dm_process_tx(struct iovec *iov, int iovcnt)
 	}
 
 	dprintf("%s: sending %d packets, tot size %d\n", __func__, i, tot_len);
-	virtionet_write(vnet, netbuf, tot_len);
+	error = virtionet_write(vnet, netbuf, tot_len);
+	dprintf("%s: write error %d\n", __func__, error);
 }
