@@ -371,9 +371,10 @@ blockif_open(const char *optstr, const char *ident)
 
 #ifdef __CHERI_PURE_CAPABILITY__
 	bc->bc_base = cheri_setoffset(pvAlmightyDataCap,
-	    PHYS_TO_DMAP(DM_BASE) + 0x03000000);
+	    PHYS_TO_DMAP(MDX_RISCV_PHYSMEM_START) + 0x03000000);
 #else
-	bc->bc_base = (void *)(PHYS_TO_DMAP(DM_BASE) + 0x03000000);
+	bc->bc_base = (void *)(PHYS_TO_DMAP(MDX_RISCV_PHYSMEM_START) +
+	    0x03000000);
 #endif
 
 	bc->bc_size = 0x00d00000;
