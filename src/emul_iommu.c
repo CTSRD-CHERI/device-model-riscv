@@ -33,109 +33,43 @@
 
 #include <sys/cdefs.h>
 #include <sys/systm.h>
-#include <sys/malloc.h>
+#include <sys/endian.h>
 #include <sys/cheri.h>
 
 #include <machine/cpuregs.h>
+#include <machine/cpufunc.h>
+#include <machine/frame.h>
 
 #include "device-model.h"
 #include "emul.h"
-#include "emul_pci.h"
 #include "emul_iommu.h"
-#include "bhyve/bhyve_support.h"
-#include "bhyve/pci_e82545.h"
 
-#include "virtio.h"
+#define	EMUL_DM_IOMMU_DEBUG
+#undef	EMUL_DM_IOMMU_DEBUG
 
-#define	DM_DEBUG
-#undef	DM_DEBUG
-
-#ifdef	DM_DEBUG
+#ifdef	EMUL_DM_IOMMU_DEBUG
 #define	dprintf(fmt, ...)	printf(fmt, ##__VA_ARGS__)
 #else
 #define	dprintf(fmt, ...)
 #endif
 
-static struct pci_softc pci0_sc;
-static int req_count;
+extern void *pvAlmightyDataCap;
 
-#define	DM_EMUL_NDEVICES	2
-
-const struct emul_link emul_map[DM_EMUL_NDEVICES] = {
-	{ 0x010000, 0x50000, emul_pci, &pci0_sc, PCI_GENERIC },
-	{ 0x510000, 0x10000, emul_iommu, NULL, DM_IOMMU },
-};
-
-static int
-dm_request(struct epw_softc *sc, struct epw_request *req)
+void
+emul_iommu(const struct emul_link *elink, struct epw_softc *epw_sc,
+    struct epw_request *req)
 {
-	const struct emul_link *elink;
 	uint64_t offset;
-	int i;
 
-	offset = req->addr - EPW_WINDOW;
+	KASSERT(elink->type == DM_IOMMU, ("Unknown device"));
 
-	dprintf("%s: offset %lx\n", __func__, offset);
+	printf("%s: req->addr %lx, base_emul %lx, epw_window %lx\n",
+	    __func__, req->addr, elink->base_emul, EPW_WINDOW);
+	offset = req->addr - elink->base_emul - EPW_WINDOW;
 
-	/* Check if this is emulation request */
-	for (i = 0; i < DM_EMUL_NDEVICES; i++) {
-		elink = &emul_map[i];
-		if (offset >= elink->base_emul &&
-		    offset < (elink->base_emul + elink->size)) {
-			elink->request(elink, sc, req);
-			return (0);
-		}
-	}
-
-	printf("%s: unknown request to offset 0x%lx\n", __func__, offset);
-
-	return (-1);
-}
-
-void
-dm_init(struct epw_softc *sc)
-{
-	int error;
-
-	req_count = 0;
-
-#ifdef CONFIG_EMUL_PCI
-	error = emul_pci_init(&pci0_sc);
-	if (error)
-		panic("Can't init PCI\n");
-#endif
-
-#ifdef MDX_VIRTIO
-	csr_set(sie, SIE_SEIE);
-	printf("%s: initializing virtio\n", __func__);
-	virtio_init();
-#endif
-}
-
-void
-dm_loop(struct epw_softc *sc)
-{
-	struct epw_request req;
-
-	printf("%s: enter\n", __func__);
-
-	while (1) {
-		dprintf("trying to get epw_request\n");
-		if (epw_request(sc, &req) != 0) {
-			//printf("EPW request received\n");
-			critical_enter();
-			if (req_count++ % 500 == 0)
-				printf("%s: req count %d\n",
-				    __func__, req_count);
-
-			dm_request(sc, &req);
-			epw_reply(sc, &req);
-			critical_exit();
-		}
-
-		e1000_poll();
-		blockif_thr(NULL);
-
-		/* Optionally we can sleep a bit here. */
+	if (req->is_write) {
+		/* TODO */
+	} else {
+		req->data = 123;
 	}
 }
