@@ -81,6 +81,9 @@ main(void)
 
 	printf("%s: starting on hart %d\n", __func__, PCPU_GET(cpuid));
 
+	/* Allow supervisor to access user memory. */
+	csr_set(sstatus, SSTATUS_SUM);
+
 	cap = pvAlmightyDataCap;
 	base = mdx_setoffset(cap, PHYS_TO_DMAP(0x50000000));
 	window = mdx_setoffset(cap, PHYS_TO_DMAP(0x60000000));
