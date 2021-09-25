@@ -200,7 +200,9 @@ capability
 cap_guest2host(struct vmctx *ctx, capability gaddr, size_t len)
 {
 
+#ifndef CONFIG_IOMMU
 	gaddr = mdx_incoffset(gaddr, DMAPBASE);
+#endif
 
 	return (gaddr);
 }
