@@ -70,6 +70,6 @@ emul_iommu(const struct emul_link *elink, struct epw_softc *epw_sc,
 	if (req->is_write) {
 		/* TODO */
 	} else {
-		req->data = 123;
+		req->data = csr_read(satp);
 	}
 }
