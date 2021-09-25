@@ -110,7 +110,8 @@ dm_process_rx(struct iovec *iov, int iovcnt)
 	do {
 		err = virtionet_read(vnet, (char *)iov[i].iov_base,
 		    iov[i].iov_len);
-		dprintf("%s: read %d bytes\n", __func__, err);
+		dprintf("%s: read %d bytes (base %#lp len %d)\n", __func__,
+		    err, iov[i].iov_base, iov[i].iov_len);
 		i++;
 		if (i >= iovcnt)
 			break;
