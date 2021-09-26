@@ -63,13 +63,20 @@ emul_iommu(const struct emul_link *elink, struct epw_softc *epw_sc,
 
 	KASSERT(elink->type == DM_IOMMU, ("Unknown device"));
 
-	printf("%s: req->addr %lx, base_emul %lx, epw_window %lx\n",
-	    __func__, req->addr, elink->base_emul, EPW_WINDOW);
 	offset = req->addr - elink->base_emul - EPW_WINDOW;
+
+	printf("%s: req->addr %lx, base_emul %lx, epw_window %lx, offset %lx\n",
+	    __func__, req->addr, elink->base_emul, EPW_WINDOW, offset);
 
 	if (req->is_write) {
 		/* TODO */
 	} else {
-		req->data = csr_read(satp);
+		switch (offset) {
+		case 0:
+			req->data = csr_read(satp);
+			break;
+		default:
+			break;
+		}
 	}
 }
