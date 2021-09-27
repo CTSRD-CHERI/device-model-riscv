@@ -96,8 +96,6 @@ main(void)
 	dm_init(&epw_sc);
 	dm_loop(&epw_sc);
 
-	panic("dm_loop returned");
-
 	/* NOT REACHED */
 
 	panic("reached unreachable place");
