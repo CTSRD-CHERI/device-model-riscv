@@ -241,11 +241,12 @@ blockif_proc(struct blockif_ctxt *bc, struct blockif_elem *be, uint8_t *buf)
 		addr = mdx_incoffset(bc->bc_base, br->br_offset);
 
 		for (i = 0; i < br->br_iovcnt; i++) {
-			dprintf("%s: read iov %d base %lx len %d, br->br_offset %d\n",
-			    __func__, i, br->br_iov->iov_base,
-			    br->br_iov->iov_len, br->br_offset);
+			dprintf("%s: read iov %d base %#lp len %d, offs %d\n",
+			    __func__, i, br->br_iov[i].iov_base,
+			    br->br_iov[i].iov_len, br->br_offset);
 
-			memcpy(br->br_iov[i].iov_base, addr, br->br_iov[i].iov_len);
+			memcpy(br->br_iov[i].iov_base, addr,
+			    br->br_iov[i].iov_len);
 			addr += br->br_iov[i].iov_len;
 		}
 		br->br_resid = 0;
@@ -259,11 +260,12 @@ blockif_proc(struct blockif_ctxt *bc, struct blockif_elem *be, uint8_t *buf)
 		addr = mdx_incoffset(bc->bc_base, br->br_offset);
 
 		for (i = 0; i < br->br_iovcnt; i++) {
-			dprintf("%s: write iov %d base %lx len %d, br->br_offset %d\n",
-			    __func__, i, br->br_iov->iov_base,
-			    br->br_iov->iov_len, br->br_offset);
+			dprintf("%s: write iov %d base %#lp len %d, offs %d\n",
+			    __func__, i, br->br_iov[i].iov_base,
+			    br->br_iov[i].iov_len, br->br_offset);
 
-			memcpy(addr, br->br_iov[i].iov_base, br->br_iov[i].iov_len);
+			memcpy(addr, br->br_iov[i].iov_base,
+			    br->br_iov[i].iov_len);
 			addr += br->br_iov[i].iov_len;
 		}
 		br->br_resid = 0;
