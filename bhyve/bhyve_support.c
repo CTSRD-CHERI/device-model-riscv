@@ -184,7 +184,7 @@ paddr_guest2host(struct vmctx *ctx, uintptr_t gaddr, size_t len)
 	addr = PHYS_TO_DMAP(gaddr);
 #endif
 
-	dprintf("%s: gaddr %#lp, addr %#lp, len %lx\n",
+	dprintf("%s: gaddr %#lp, addr %#lp, len %ld\n",
 	    __func__, gaddr, addr, len);
 
 #ifdef __CHERI_PURE_CAPABILITY__
