@@ -133,7 +133,14 @@ dm_loop(struct epw_softc *sc)
 			critical_exit();
 		}
 
+#ifdef CONFIG_IOMMU
+		__asm __volatile("sfence.vma");
+#endif
 		e1000_poll();
+
+#ifdef CONFIG_IOMMU
+		__asm __volatile("sfence.vma");
+#endif
 		blockif_thr(NULL);
 
 		/* Optionally we can sleep a bit here. */
