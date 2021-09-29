@@ -39,10 +39,6 @@
 #include <machine/cpuregs.h>
 #include <machine/cpufunc.h>
 #include <machine/frame.h>
-#if 0
-#include <machine/cache_mipsNN.h>
-#include <machine/cache_r4k.h>
-#endif
 
 #include <mips/beri/beri_epw.h>
 #include <dev/pci/pcireg.h>
