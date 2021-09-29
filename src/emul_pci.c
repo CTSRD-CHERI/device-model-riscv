@@ -70,56 +70,23 @@ static int
 emul_mem(struct pci_softc *sc, struct epw_request *req,
     uint64_t offset)
 {
+	uint64_t data;
 	uint64_t val;
 	int error;
-	//int bytes;
-	//uint8_t val8[8];
-	uint64_t data;
-	//int i;
 
 	if (req->is_write) {
 		KASSERT(req->data_len < 8,
 		    ("Wrong access width %d", req->data_len));
-#if 0
-		switch (req->data_len) {
-		case 8:
-			val = *(uint64_t *)req->data;
-			val = le64toh(val);
-			break;
-		case 4:
-			val = *(uint32_t *)req->data;
-			val = le32toh(val);
-			break;
-		case 2:
-			val = *(uint16_t *)req->data;
-			val = le16toh(val);
-			break;
-		case 1:
-			val = *(uint8_t *)req->data;
-			break;
-		}
-#endif
 		val = req->data;
 
 		error = emulate_mem(sc->ctx, 0, req->addr, req->is_write,
 		    req->data_len, &val);
 		dprintf("Error %d, val %lx\n", error, val);
 	} else {
-#if 0
-		bytes = req->data_len;
-		error = emulate_mem(sc->ctx, 0, req->addr, req->is_write,
-		    req->data_len, (uint64_t *)&val8[0]);
-		if (error == 0)
-			for (i = 0; i < bytes; i++)
-				/* TODO: is offset required here ? */
-				req->data[8 - bytes - offset % 8 + i] =
-				    val8[7 - i];
-#else
 		error = emulate_mem(sc->ctx, 0, req->addr, req->is_write,
 		    req->data_len, (uint64_t *)&data);
 		if (error == 0)
 			req->data = data;
-#endif
 	}
 
 	return (error);
@@ -160,29 +127,19 @@ emul_pci(const struct emul_link *elink, struct epw_softc *epw_sc,
 		bytes = req->data_len;
 		printf("%s (%d/%d/%d): %d-bytes write to %lx\n",
 		    __func__, bus, slot, func, bytes, offset);
-		//bcopy((void *)&req->data[0], &val8[4 - bytes], bytes);
 		data = req->data;
 		printf("%s write val %x\n", __func__, data);
-		//bhyve_pci_cfgrw(sc->ctx, 0, bus, slot, func, coff,
-		//    bytes, (uint32_t *)&val8[0]);
 		bhyve_pci_cfgrw(sc->ctx, 0, bus, slot, func, coff,
 		    bytes, &data);
 	} else {
-		//bzero((void *)&req->data[0], 32);
 		data = 0;
 		bytes = req->data_len;
 
 		printf("%s (%d/%d/%d): %d-bytes read from %lx, ",
 		    __func__, bus, slot, func, bytes, offset);
-		//bhyve_pci_cfgrw(sc->ctx, 1, bus, slot, func, coff,
-		//    bytes, (uint32_t *)&val8[0]);
 		bhyve_pci_cfgrw(sc->ctx, 1, bus, slot, func, coff,
 		    bytes, &data);
 		printf("val %x\n", data);
-
-		//len = bytes + offset % 8;
-		//bcopy((void *)&val8[4 - bytes],
-		//    (void *)&req->data[8 - len], bytes);
 		req->data = data;
 	}
 }
