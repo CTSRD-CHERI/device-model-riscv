@@ -122,7 +122,7 @@ dm_loop(struct epw_softc *sc)
 	while (1) {
 		dprintf("trying to get epw_request\n");
 		if (epw_request(sc, &req) != 0) {
-			//printf("EPW request received\n");
+			dprintf("EPW request received\n");
 			critical_enter();
 			if (req_count++ % 500 == 0)
 				printf("%s: req count %d\n",
