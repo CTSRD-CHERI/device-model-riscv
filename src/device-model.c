@@ -77,7 +77,7 @@ dm_request(struct epw_softc *sc, struct epw_request *req)
 
 	dprintf("%s: offset %lx\n", __func__, offset);
 
-	/* Check if this is emulation request */
+	/* Check if this is an emulation request. */
 	for (i = 0; i < DM_EMUL_NDEVICES; i++) {
 		elink = &emul_map[i];
 		if (offset >= elink->base_emul &&
