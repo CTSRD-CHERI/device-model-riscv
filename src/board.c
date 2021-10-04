@@ -41,6 +41,7 @@
 
 #include <riscv/include/plic.h>
 #include <dev/uart/uart_16550.h>
+#include <libfdt/libfdt.h>
 
 #include "board.h"
 
@@ -67,6 +68,27 @@ uart_getchar(void)
 	return (a);
 }
 
+static void
+fdt_relocate(void)
+{
+	void *new_dtbp;
+	void *dtbp;
+	int error;
+	int sz;
+
+	dtbp = mdx_of_get_dtbp();
+
+	sz = fdt_totalsize(dtbp);
+
+	new_dtbp = malloc(sz);
+
+	error = fdt_move(dtbp, new_dtbp, sz);
+	if (error != 0)
+		panic("could not move dtbp");
+
+	mdx_of_install_dtbp(new_dtbp);
+}
+
 void
 board_init(void)
 {
@@ -85,6 +107,8 @@ board_init(void)
 	malloc_init();
 #endif
 	malloc_add_region(cap, 0x7800000);
+
+	fdt_relocate();
 
 	mi_startup();
 
