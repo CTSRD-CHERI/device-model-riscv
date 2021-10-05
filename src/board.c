@@ -78,7 +78,7 @@ fdt_relocate(void)
 
 	dtbp = mdx_of_get_dtbp();
 
-	sz = fdt_totalsize(dtbp);
+	sz = fdt_totalsize(dtbp) * 2; /* Reserve space for modifications. */
 
 	new_dtbp = malloc(sz);
 
@@ -87,6 +87,18 @@ fdt_relocate(void)
 		panic("could not move dtbp");
 
 	mdx_of_install_dtbp(new_dtbp);
+}
+
+static void
+fdt_patch(void)
+{
+	int offset;
+	void *dtbp;
+
+	offset = mdx_of_chosen_path_offset();
+	dtbp = mdx_of_get_dtbp();
+
+	fdt_setprop(dtbp, offset, "compatible", "aaa", 3);
 }
 
 void
@@ -108,7 +120,12 @@ board_init(void)
 #endif
 	malloc_add_region(cap, 0x7800000);
 
+	/*
+	 * The chosen device is used by CheriBSD on the 1st core.
+	 * Ensure we don't attach it here by replacing compatible string.
+	 */
 	fdt_relocate();
+	fdt_patch();
 
 	mi_startup();
 
