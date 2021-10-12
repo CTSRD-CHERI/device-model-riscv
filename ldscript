@@ -34,7 +34,7 @@ SECTIONS
 		*(set_inout_port_set)
 	}
 
-	__cap_relocs :  ALIGN(16) {
+	__cap_relocs : ALIGN(16) {
 		*(__cap_relocs)
 	}
 
