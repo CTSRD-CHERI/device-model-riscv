@@ -48,7 +48,7 @@
 #include "virtio.h"
 
 #define	VIRTIO_NET_MMIO_BASE	PHYS_TO_DMAP(0x10007000)
-#define	VIRTIO_MAX_BUF		8192
+#define	VIRTIO_MAX_BUF		131072
 
 #define	VIRTIO_DEBUG
 #undef	VIRTIO_DEBUG
