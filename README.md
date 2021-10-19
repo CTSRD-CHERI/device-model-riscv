@@ -35,7 +35,7 @@ Optionally add --skip-world, --skip-kernel to the above command line to skip wor
 
 First, get the console access to device-model. Replace XX with your pts from QEMU output message on char device redirection
 
-	$ cu -l /dev/pts/XX
+    $ cu -l /dev/pts/XX
 
 Now, from the CheriBSD that is running on 1st core, load the device-model binary to a designated location in DRAM:
 
@@ -51,4 +51,4 @@ This includes PCI itself, E1000 and AHCI controllers:
 
 ### Test
 
-    Once devices initialized you can setup an IP address on em0 device in CheriBSD, and a filesystem on /dev/ada0.
+Once devices initialized you can setup an IP address on em0 device in CheriBSD, and a filesystem on /dev/ada0.
