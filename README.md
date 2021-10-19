@@ -22,17 +22,7 @@ You can now find the device-model binary in your ${HOME}/cheri/extra-files/root/
 
 ### Now, build and run CheriBSD on the 1st core of RISC-V CPU:
 ```
-   $ ./cheribuild.py run-dm-riscv64-purecap			\
-    "--run-dm-riscv64-purecap/extra-options=-smp 2		\
-    -serial mon:stdio						\
-    -serial pty							\
-    -accel tcg,thread=multi					\
-    -device virtio-net-device,netdev=net0			\
-    -netdev tap,id=net0,ifname=tap0,script=no,downscript=no	\
-    -D trace.log" -d						\
-    --cheribsd/git-revision=device-model-riscv			\
-    --qemu/git-revision=concurrent_tags_rebased_dm		\
-    --bbl/git-revision=cheri_purecap_dm
+    $ ./cheribuild.py run-dm-riscv64-purecap "--run-dm-riscv64-purecap/extra-options=-smp 2 -serial mon:stdio -serial pty -accel tcg,thread=multi -device virtio-net-device,netdev=net0 -netdev tap,id=net0,ifname=tap0,script=no,downscript=no -D trace.log" -d --skip-world --cheribsd/git-revision=device-model-riscv --qemu/git-revision=concurrent_tags_rebased_dm --bbl/git-revision=cheri_purecap_dm
 ```
 
 Optionally add --skip-world, --skip-kernel to the above command line to skip world or kernel builds.
