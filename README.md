@@ -21,6 +21,7 @@ You can now find the device-model binary in your ${HOME}/cheri/extra-files/root/
     $ sudo ifconfig tap0 up
 
 ### Now, build and run CheriBSD on the 1st core of RISC-V CPU:
+```
    $ ./cheribuild.py run-dm-riscv64-purecap			\
     "--run-dm-riscv64-purecap/extra-options=-smp 2		\
     -serial mon:stdio						\
@@ -32,6 +33,7 @@ You can now find the device-model binary in your ${HOME}/cheri/extra-files/root/
     --cheribsd/git-revision=device-model-riscv			\
     --qemu/git-revision=concurrent_tags_rebased_dm		\
     --bbl/git-revision=cheri_purecap_dm
+```
 
 Optionally add --skip-world, --skip-kernel to the above command line to skip world or kernel builds.
 
