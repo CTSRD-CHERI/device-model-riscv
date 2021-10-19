@@ -9,6 +9,10 @@ QEMU emulator is used in this project.
 ### First, build this project
     $ make purecap
 
+Alternatively, you can build using [cheribuild](https://github.com/CTSRD-CHERI/cheribuild):
+
+    $ ./cheribuild.py device-model
+
 You can now find the device-model binary in your ${HOME}/cheri/extra-files/root/ directory.
 
 ### Now, setup a tap device on the QEMU host machine:
