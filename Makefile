@@ -1,3 +1,5 @@
+.NOTPARALLEL:
+
 APP = device-model-riscv
 
 OSDIR = mdepx
