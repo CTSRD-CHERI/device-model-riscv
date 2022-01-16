@@ -7,7 +7,12 @@ This app emulates AHCI block and Intel E1000 Ethernet devices using a secondary 
 QEMU emulator is used in this project.
 
 ### First, build this project
+
     $ make purecap
+
+You may need to set your compiler path first:
+
+    $ env CROSS_COMPILE=$HOME/cheri/output/sdk/bin/riscv64-unknown-freebsd- CC=$HOME/cheri/output/sdk/bin/clang make purecap
 
 Alternatively, you can build using [cheribuild](https://github.com/CTSRD-CHERI/cheribuild):
 
