@@ -68,6 +68,33 @@ uart_getchar(void)
 	return (a);
 }
 
+int
+uart_getchar_nonblock(void)
+{
+	int a;
+
+	if (mdx_uart_rxready(dev_uart)) {
+		a = mdx_uart_getc(dev_uart);
+		return (a);
+	} else {
+		return EOF;
+	}
+}
+
+int linenoise_getch(void)
+{
+	int c;
+	c = uart_getchar_nonblock();
+	return c;
+}
+
+void linenoise_write(const char *s, size_t len)
+{
+	char buf[1024];
+	snprintf(buf, (len<sizeof(buf) ? len:sizeof(buf)), "%s", s);
+	printf("%s",buf);
+}
+
 static void
 fdt_relocate(void)
 {

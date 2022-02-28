@@ -28,5 +28,9 @@
 #define	_SRC_BOARD_H_
 
 char uart_getchar(void);
+int uart_getchar_nonblock(void);
+
+int linenoise_getch(void);
+void linenoise_write(const char *s, size_t len);
 
 #endif /* !_SRC_BOARD_H_ */
