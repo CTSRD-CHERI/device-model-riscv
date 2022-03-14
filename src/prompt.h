@@ -27,7 +27,27 @@
 #ifndef _SRC_PROMPT_H_
 #define	_SRC_PROMPT_H_
 
-int prompt_init(void);
-int prompt_poll(void);
+int prompt_init(struct epw_softc *sc);
+int prompt_poll(struct epw_softc *sc);
+
+enum keys {
+  KEY_BS,
+  KEY_DEL,
+  KEY_UP,
+  KEY_DOWN,
+  KEY_LEFT,
+  KEY_RIGHT,
+  KEY_TAB,
+  KEY_PAGEUP,
+  KEY_PAGEDOWN,
+  KEY_HOME,
+  KEY_END,
+  KEY_INSERT
+};
+
+struct keycode {
+    int key;
+    const char *codes;
+};
 
 #endif /* !_SRC_PROMPT_H_ */

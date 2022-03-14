@@ -68,59 +68,6 @@ const struct emul_link emul_map[DM_EMUL_NDEVICES] = {
 	{ 0x510000, 0x10000, emul_iommu, NULL, DM_IOMMU },
 };
 
-
-enum command_state {
-	INIT, PROMPT, WAITING, BUSY
-};
-
-static int
-dm_command(struct epw_softc *sc)
-{
-	static enum command_state state = INIT;
-	char cmdline[1024];
-	static int p = 0;
-	int c;
-
-	switch (state) {
-		case INIT:
-			p = 0;
-			cmdline[0] = '\0';
-			state = PROMPT;
-			break;
-		case PROMPT:
-			printf("\n> ");
-			state = WAITING;
-			break;
-		case WAITING:
-			c = uart_getchar_nonblock();
-			if (c != EOF) {
-			    if (p+1 < sizeof(cmdline)/sizeof(char)) {
-			        cmdline[p] = c;
-			        cmdline[p+1] = '\0';
-			        p++;
-			        printf("%c",c);
-			    }
-			    if (c == 8 || c == 127) {
-			        cmdline[p] = '\0';
-			        p--;
-			    }
-			    if (c == '\r' || c == '\n') {
-			        cmdline[p-1] = '\0';
-			        printf("\nGot '%s'", cmdline);
-			        cmdline[0]='\0';
-			        p = 0;
-			        state = PROMPT;
-			    }
-			}
-			break;
-		case BUSY:
-			break;
-	}
-
-	return (0);
-}
-
-
 static int
 dm_request(struct epw_softc *sc, struct epw_request *req)
 {
@@ -166,8 +113,7 @@ dm_init(struct epw_softc *sc)
 	virtio_init();
 #endif
 
-	linenoise_write("Hello world!", 10);
-	prompt_init();
+	prompt_init(sc);
 }
 
 void
@@ -178,8 +124,6 @@ dm_loop(struct epw_softc *sc)
 	printf("%s: enter\r\n", __func__);
 
 	while (1) {
-		prompt_poll();
-
 		dprintf("trying to get epw_request\r\n");
 		if (epw_request(sc, &req) != 0) {
 			dprintf("EPW request received\n");
@@ -202,7 +146,7 @@ dm_loop(struct epw_softc *sc)
 		__asm __volatile("sfence.vma");
 #endif
 		blockif_thr(NULL);
-		// dm_command(sc);
+		prompt_poll(sc);
 		/* Optionally we can sleep a bit here. */
 	}
 }
