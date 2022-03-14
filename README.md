@@ -46,3 +46,59 @@ This includes PCI itself, E1000 and AHCI controllers:
 ### Test
 
 Once devices initialized you can setup an IP address on em0 device in CheriBSD, and a filesystem on /dev/ada0.
+
+### Debugging
+
+QEMU provides a GDB interface by which it's possible to attach to either or
+both cores.  First, make sure device-model-riscv.elf is compiled with debug
+symbols - add `-O0 -ggdb` to `set-build-flags` in mdepx-purecap.conf
+
+Next, build the CHERI version of GDB:
+
+    $ ./cheribuild.py -d gdb-native
+
+Then run QEMU with the `-s` flag (eg adding it inside the
+`--run-dm-riscv4-purecap/extra-options` list in the cheribuild command
+above).  Separately, run GDB:
+
+    $ ~/cheri/output/sdk/bin/gdb
+
+Then connect to the GDB stub and configure GDB
+
+    (gdb) set arch riscv:rv64
+    (gdb) target extended-remote localhost:1234
+    (gdb) info threads
+          Id   Target Id                    Frame 
+          * 1    Thread 1.1 (CPU#0 [halted ]) 0x000000008020425c in ?? ()
+            2    Thread 1.2 (CPU#1 [halted ]) 0xffffffc0005bd6f6 in ?? ()
+    (gdb) file device-model-riscv/obj/device-model-riscv.elf
+    A program is being debugged already.
+    Are you sure you want to change the file? (y or n) y
+    Reading symbols from device-model-riscv/obj/device-model-riscv.elf...
+    (No debugging symbols found in device-model-riscv/obj/device-model-riscv.elf)
+    (gdb) info threads
+      Id   Target Id                    Frame
+    * 1    Thread 1.1 (CPU#0 [halted ]) 0xffffffc0005bd6f6 in ?? ()
+      2    Thread 1.2 (CPU#1 [running]) 0xffffffd0f80059a4 in uart_16550_rxready ()
+
+We can now use GDB to debug either thread (here 1 is FreeBSD, 2 is the
+device model).  Note that it's not currently possible to pause one while
+letting the other run - you have to pause both together.
+
+    (gdb) thread 2
+    [Switching to thread 2 (Thread 1.2)]
+    #0  0xffffffd0f80059a4 in uart_16550_rxready ()
+    (gdb) c
+    Continuing.
+    ^C
+    Thread 1 received signal SIGINT, Interrupt.
+    0xffffffd0f80059a4 in uart_16550_rxready (dev=0xffffffd0f8802960 [rwxRW,0xffffffd0f8802960-0xffffffd0f88029d0])                                                           at mdepx/dev/uart/uart_16550.c:82
+    82              status = UART_READ(sc, REG_LSR);
+    (gdb) n
+    83              if (status & LSR_RXRDY)
+    (gdb)
+    86              return (false);
+    (gdb)
+    87      }
+    (gdb)
+    mdx_uart_rxready (dev=0xffffffd0f8802960 [rwxRW,0xffffffd0f8802960-0xffffffd0f88029d0]) at mdepx/dev/uart/uart.c:63                                                   63              return (ready);
