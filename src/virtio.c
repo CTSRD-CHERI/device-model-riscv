@@ -145,5 +145,6 @@ dm_process_tx(struct iovec *iov, int iovcnt)
 
 	dprintf("%s: sending %d packets, tot size %d\n", __func__, i, tot_len);
 	error = virtionet_write(vnet, netbuf, tot_len);
+	(void) error;
 	dprintf("%s: write error %d\n", __func__, error);
 }

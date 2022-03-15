@@ -1270,6 +1270,7 @@ e82545_transmit(struct e82545_softc *sc, uint16_t head, uint16_t tail,
 			    (le32toh(dsc->td.lower.data) & E1000_TXD_CMD_IFCS) == 0)
 				len -= 2;
 			tlen += len;
+			(void) tlen;
 			if (iovcnt < I82545_MAX_TXSEGS) {
 #if defined(E1000_DESC_CAP)
 				iov[iovcnt].iov_base = cap_guest2host(

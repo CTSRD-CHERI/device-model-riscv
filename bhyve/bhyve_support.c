@@ -89,6 +89,7 @@ pci_irq_assert(struct pci_devinst *pi)
 		irq = DM_E1000_INTR;
 	else
 		panic("%s: unknown IRQ to assert\n", __func__);
+	(void) irq;
 
 	cap = mdx_setoffset(pvAlmightyDataCap, PHYS_TO_DMAP(PLIC_BASE));
 	cap = mdx_setbounds(cap, 8);
@@ -116,6 +117,7 @@ pci_irq_deassert(struct pci_devinst *pi)
 		irq = DM_AHCI_INTR;
 	else if (strcmp(pi->pi_name, "e1000-pci-0") == 0)
 		irq = DM_E1000_INTR;
+	(void) irq;
 }
 
 int
