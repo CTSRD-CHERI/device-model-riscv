@@ -6,10 +6,18 @@ This app emulates AHCI block and Intel E1000 Ethernet devices using a secondary 
 
 QEMU emulator is used in this project.
 
-### First, build this project
-    $ make purecap
+### Prerequisites
 
-Alternatively, you can build using [cheribuild](https://github.com/CTSRD-CHERI/cheribuild):
+You need CHERI LLVM installed.  You can build that using [cheribuild](https://github.com/CTSRD-CHERI/cheribuild):
+
+    $ ./cheribuild.py -d llvm
+
+### To build this project
+
+    $ env CROSS_COMPILE=$HOME/cheri/output/sdk/bin/riscv64-unknown-freebsd- CC=$HOME/cheri/output/sdk/bin/clang \
+      make purecap
+
+Alternatively, you can build using cheribuild:
 
     $ ./cheribuild.py device-model
 
