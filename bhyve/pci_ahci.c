@@ -795,14 +795,21 @@ read_prdt(struct ahci_port *p, int slot, uint8_t *cfis,
 	to = buf;
 	prdt = (struct ahci_prdt_entry *)(cfis + 0x80);
 	for (i = 0; i < le16toh(hdr->prdtl) && len; i++) {
-		uint8_t *ptr;
+		dma_iova_t ptr;
 		uint32_t dbcsz;
 		int sublen;
 
 		dbcsz = (le32toh(prdt->dbc) & DBCMASK) + 1;
 		ptr = paddr_guest2host(ahci_ctx(p->pr_sc), le64toh(prdt->dba), dbcsz);
 		sublen = MIN(len, dbcsz);
+#ifdef DMA_INDIR
+		dma_status status = dma_rd_block(to, ptr, sublen);
+		if (status != DMA_SUCCESS) {
+			dprintf("DMA fault code %d at block read from IOVA %x", status, ptr);
+		}
+#else
 		memcpy(to, ptr, sublen);
+#endif
 		len -= sublen;
 		to = mdx_incoffset(to, sublen);
 		prdt++;
@@ -916,7 +923,14 @@ write_prdt(struct ahci_port *p, int slot, uint8_t *cfis,
 		dbcsz = (le32toh(prdt->dbc) & DBCMASK) + 1;
 		ptr = paddr_guest2host(ahci_ctx(p->pr_sc), le64toh(prdt->dba), dbcsz);
 		sublen = MIN(len, dbcsz);
+#ifdef DMA_INDIR
+		dma_status status = dma_wr_block(ptr, from, sublen);
+		if (status != DMA_SUCCESS) {
+			dprintf("DMA fault code %d at block read from IOVA %x", status, ptr);
+		}
+#else
 		memcpy(ptr, from, sublen);
+#endif
 		len -= sublen;
 		from = mdx_incoffset(from, sublen);
 		prdt++;
@@ -1827,7 +1841,8 @@ ahci_handle_slot(struct ahci_port *p, int slot)
 	for (i = 0; i < cfl; i++) {
 		if (i % 10 == 0)
 			DPRINTF("\n");
-		DPRINTF("%02x ", cfis[i]);
+		uint8_t b = dma_rd_uint8_t(cfis + i);
+		DPRINTF("%02x ", b);
 	}
 	DPRINTF("\n");
 
@@ -1837,7 +1852,7 @@ ahci_handle_slot(struct ahci_port *p, int slot)
 	}
 #endif
 
-	if (cfis[0] != FIS_TYPE_REGH2D) {
+	if (dma_rd_uint8_t(cfis + 0) != FIS_TYPE_REGH2D) {
 		WPRINTF("Not a H2D FIS:%02x\n", cfis[0]);
 		return;
 	}

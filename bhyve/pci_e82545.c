@@ -67,6 +67,8 @@
 #include "device-model.h"
 #include "bhyve_support.h"
 #include "pthread.h"
+#include "emul_dma.h"
+
 #include <sys/linker_set.h>
 #define	TH_FIN		0x01
 #define	TH_SYN		0x02
@@ -1002,10 +1004,19 @@ e82545_tap_callback(int fd, enum ev_type type, void *param)
 		    len, n, head);
 
 		/* Apply VLAN filter. */
+#ifdef DMA_INDIR
+		// iov_base is a uint8_t* so we can do arithmetic on it
 		tp = (uint16_t *)vec[0].iov_base + 6;
+		uint16_t tp0 = dma_rd_uint16_t(tp+0);
+		uint16_t tp1 = dma_rd_uint16_t(tp+1);
+#else
+		tp = (uint16_t *)vec[0].iov_base + 6;
+		uint16_t tp0 = tp[0];
+		uint16_t tp1 = tp[1];
+#endif
 		if ((sc->esc_RCTL & E1000_RCTL_VFE) &&
-		    (ntohs(tp[0]) == sc->esc_VET)) {
-			tag = ntohs(tp[1]) & 0x0fff;
+		    (ntohs(tp0) == sc->esc_VET)) {
+			tag = ntohs(tp1) & 0x0fff;
 			if ((sc->esc_fvlan[tag >> 5] &
 			    (1 << (tag & 0x1f))) != 0) {
 				DPRINTF("known VLAN %d\r\n", tag);
@@ -1116,8 +1127,9 @@ e82545_iov_checksum(struct iovec *iov, int iovcnt, int off, int len)
 #if 0
 		s = e82545_buf_checksum(iov->iov_base + off, now);
 #else
-		s = e82545_buf_checksum(mdx_incoffset(iov->iov_base, off),
-		    now);
+		//FIXME DMA_INDIR
+		uint8_t *offset_iov_base = mdx_incoffset(iov->iov_base, off);
+		s = e82545_buf_checksum(offset_iov_base, now);
 #endif
 		sum += odd ? (s << 8) : s;
 		odd ^= (now & 1);
@@ -1181,10 +1193,19 @@ e82545_transmit_done(struct e82545_softc *sc, uint16_t head, uint16_t tail,
 
 	for ( ; head != tail; head = (head + 1) % dsize) {
 		dsc = &sc->esc_txdesc[head];
+#ifdef DMA_INDIR
+		uint32_t data = dma_rd_uint32_t(&dsc->td.upper.data);
+		if (le32toh(data) & E1000_TXD_CMD_RS) {
+			data |= htole32(E1000_TXD_STAT_DD);
+			dma_wr_uint32_t(&dsc->td.upper.data, data);
+			*tdwb = 1;
+		}
+#else
 		if (le32toh(dsc->td.lower.data) & E1000_TXD_CMD_RS) {
 			dsc->td.upper.data |= htole32(E1000_TXD_STAT_DD);
 			*tdwb = 1;
 		}
+#endif
 	}
 }
 
@@ -1199,6 +1220,7 @@ e82545_transmit(struct e82545_softc *sc, uint16_t head, uint16_t tail,
 	struct ck_info ckinfo[2];
 	struct iovec *iov;
 	union  e1000_tx_udesc *dsc;
+	union  e1000_tx_udesc dsc_local;
 	int desc, dtype, len, ntype, iovcnt, tlen, hdrlen, vlen, tcp, tso;
 	int mss, paylen, seg, tiovcnt, left, now, nleft, nnow, pv, pvoff;
 	uint32_t tcpsum, tcpseq;
@@ -1219,7 +1241,14 @@ e82545_transmit(struct e82545_softc *sc, uint16_t head, uint16_t tail,
 			*rhead = head;
 			return (0);
 		}
+#ifdef DMA_INDIR
+		// copy descriptor into local memory
+		dma_rd_block(&dsc_local, &sc->esc_txdesc[head], sizeof(union e1000_tx_udesc));
+		dsc = &dsc_local;
+#else
+		// use descriptor from shared memory with host
 		dsc = &sc->esc_txdesc[head];
+#endif
 		dtype = e82545_txdesc_type(le32toh(dsc->td.lower.data));
 
 		if (desc == 0) {
@@ -1366,7 +1395,11 @@ e82545_transmit(struct e82545_softc *sc, uint16_t head, uint16_t tail,
 		for (left = hdrlen, hdrp = hdr; left > 0;
 		    left -= now, hdrp += now) {
 			now = MIN(left, iov->iov_len);
+#ifdef DMA_INDIR
+			dma_rd_block(hdrp, iov->iov_base, now);
+#else
 			memcpy(hdrp, iov->iov_base, now);
+#endif
 #if 0
 			iov->iov_base += now;
 #else

@@ -35,6 +35,7 @@
 #define	_BHYVE_SUPPORT_H_
 
 #include <bhyve/errno.h>
+#include "emul_dma.h"
 
 struct vmctx {
 	int	fd;
@@ -47,7 +48,8 @@ struct vmctx {
 	capability cap;
 };
 
-void *paddr_guest2host(struct vmctx *ctx, uintptr_t addr, size_t len);
+
+dma_iopa_t paddr_guest2host(struct vmctx *ctx, dma_iova_t addr, size_t len);
 int bhyve_pci_init(struct vmctx *ctx);
 void bhyve_pci_cfgrw(struct vmctx *ctx, int in, int bnum, int snum,
     int fnum, int coff, int bytes, uint32_t *val);

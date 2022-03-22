@@ -43,7 +43,7 @@ typedef	__size_t	size_t;
 #endif
 
 struct iovec {
-	uint8_t *iov_base;	/* Base address. */
+	intptr_t iov_base;	/* Base address. */
 	size_t	 iov_len;	/* Length. */
 };
 

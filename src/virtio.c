@@ -44,6 +44,7 @@
 
 #include "device-model.h"
 #include "bhyve/pci_e82545.h"
+#include "emul_dma.h"
 
 #include "virtio.h"
 
@@ -124,7 +125,7 @@ void
 dm_process_tx(struct iovec *iov, int iovcnt)
 {
 	int tot_len;
-	void *buf;
+	dma_iova_t buf;
 	int error;
 	int len;
 	int i;

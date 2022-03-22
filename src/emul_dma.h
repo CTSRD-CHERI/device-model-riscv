@@ -44,11 +44,12 @@ typedef enum {
 } dma_status;
 
 // IO virtual address for DMA
-typedef void *dma_iova;
+typedef uintptr_t dma_iova_t;
+typedef uintptr_t dma_iopa_t;
 
 // constructor for a DMA write function for values of 'type'
 #define CTR_DMA_WR(type) \
-static inline dma_status dma_wr_##type(dma_iova iova, type data) {      \
+static inline dma_status dma_wr_##type(dma_iova_t iova, type data) {      \
     uintptr_t iova_ptr = (uintptr_t) iova;                              \
     type *pa = (type *) iova_ptr;                                       \
     *pa = data;                                                         \
@@ -58,7 +59,7 @@ static inline dma_status dma_wr_##type(dma_iova iova, type data) {      \
 // constructor for a DMA read function for values of 'type'.
 // at present we just return the result, rather than handling faults
 #define CTR_DMA_RD(type) \
-static inline type dma_rd_##type(dma_iova iova) {                       \
+static inline type dma_rd_##type(dma_iova_t iova) {                       \
     uintptr_t iova_ptr = (uintptr_t) iova;                              \
     type *pa = (type *) iova_ptr;                                       \
     type data = *pa;                                                    \
@@ -86,13 +87,13 @@ CTR_DMA_RD(int8_t);
 
 
 // same semantics as memcpy()
-static inline dma_status dma_wr_block(dma_iova iova, void *input, size_t len) {
+static inline dma_status dma_wr_block(dma_iova_t iova, void *input, size_t len) {
     void *pa = (void *) iova;
     memcpy(pa, input, len);
     return DMA_SUCCESS;
 }
 
-static inline dma_status dma_rd_block(void *output, dma_iova iova, size_t len) {
+static inline dma_status dma_rd_block(void *output, dma_iova_t iova, size_t len) {
     void *pa = (void *) iova;
     memcpy(output, pa, len);
     return DMA_SUCCESS;
