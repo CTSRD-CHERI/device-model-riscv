@@ -39,7 +39,7 @@
 #include <sys/errno.h>
 #include <sys/types.h>
 #ifndef WITHOUT_CAPSICUM
-#include <sys/capsicum.h>
+//#include <sys/capsicum.h>
 #endif
 #include <sys/limits.h>
 #include <sys/uio.h>
@@ -331,7 +331,7 @@ struct e82545_softc {
 	uint32_t	esc_fvlan[128]; /* VLAN 4096-bit filter */
 	
 	/* Receive */
-	struct e1000_rx_desc *esc_rxdesc;
+	/*struct e1000_rx_desc * */ dma_iopa_t esc_rxdesc;
 	pthread_cond_t	esc_rx_cond;
 	int		esc_rx_enabled;
 	int		esc_rx_active;

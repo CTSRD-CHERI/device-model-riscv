@@ -190,9 +190,9 @@ paddr_guest2host(struct vmctx *ctx, dma_iova_t gaddr, size_t len)
 	    __func__, gaddr, addr, len);
 
 #ifdef __CHERI_PURE_CAPABILITY__
-	result = cheri_setoffset(ctx->cap, addr);
+	result = (dma_iopa_t) cheri_setoffset(ctx->cap, addr);
 #else
-	result = (dma_iopa_t)addr;
+	result = (dma_iopa_t) addr;
 #endif
 
 	return (result);
