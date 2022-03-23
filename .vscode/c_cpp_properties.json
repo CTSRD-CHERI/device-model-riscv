@@ -9,9 +9,9 @@
             "compilerPath": "/home/atm26/cheri/output/sdk/bin/riscv64-unknown-freebsd-clang++",
             "cStandard": "gnu17",
             "cppStandard": "gnu++14",
-            "intelliSenseMode": "${default}",
+            "intelliSenseMode": "clang-x86",
             "compilerArgs": [
-                "-march=rv64gc","-mabi=lp64","-mcmodel=medany","-mno-relax","-target","riscv64-unknown-elf","-nostdinc","-fno-builtin-printf","-ffreestanding","-Wall","-Wredundant-decls","-Wnested-externs","-Wstrict-prototypes","-Wmissing-prototypes","-Wpointer-arith","-Winline","-Wcast-qual","-Wundef","-Wmissing-include-dirs","-Werror","-g","-Iobj","-Imdepx "
+                "-march=rv64gc", "-mabi=lp64", "-mcmodel=medany","-mno-relax","-target=riscv64-unknown-elf","-nostdinc","-fno-builtin-printf","-ffreestanding","-Wall","-Wredundant-decls","-Wnested-externs","-Wstrict-prototypes","-Wmissing-prototypes","-Wpointer-arith","-Winline","-Wcast-qual","-Wundef","-Wmissing-include-dirs","-Werror","-g","-Iobj","-Imdepx "
             ],
             "mergeConfigurations": false,
             "browse": {

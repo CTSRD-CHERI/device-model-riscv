@@ -144,10 +144,14 @@
 
 /* Legacy receive descriptor */
 struct e1000_rx_desc {
-#if defined(E1000_DESC_CAP)
-	void * __capability buffer_addr;
+#ifdef DMA_INDIR
+	dma_iova_t buffer_addr;
 #else
-	uint64_t buffer_addr;	/* Address of the descriptor's data buffer */
+	#if defined(E1000_DESC_CAP)
+		void * __capability buffer_addr;
+	#else
+		uint64_t buffer_addr;	/* Address of the descriptor's data buffer */
+	#endif
 #endif
 	uint16_t length;	/* Length of data DMAed into data buffer */
 	uint16_t csum;		/* Packet checksum */
@@ -224,10 +228,14 @@ struct e1000_context_desc {
 
 /* Data descriptor */
 struct e1000_data_desc {
-#if defined(E1000_DESC_CAP)
-	void * __capability buffer_addr;
+#ifdef DMA_INDIR
+	dma_iova_t buffer_addr;
 #else
-	uint64_t buffer_addr;  /* Address of the descriptor's buffer address */
+	#if defined(E1000_DESC_CAP)
+		void * __capability buffer_addr;
+	#else
+		uint64_t buffer_addr;  /* Address of the descriptor's buffer address */
+	#endif
 #endif
 	union {
 		uint32_t data;
@@ -862,7 +870,7 @@ e82545_rx_ctl(struct e82545_softc *sc, uint32_t val)
 			e82545_rx_disable(sc);
 			sc->esc_rx_loopback = 0;
 			sc->esc_rdba = 0;
-			sc->esc_rxdesc = NULL;
+			sc->esc_rxdesc = (dma_iopa_t) NULL;
 		}
 	}
 }
@@ -928,11 +936,12 @@ static void
 e82545_tap_callback(int fd, enum ev_type type, void *param)
 {
 	struct e82545_softc *sc = param;
+	struct e1000_rx_desc rxd_local;
 	struct e1000_rx_desc *rxd;
 	struct iovec vec[64];
 	int left, len, lim, maxpktsz, maxpktdesc, bufsz, i, n, size;
 	uint32_t cause = 0;
-	uint16_t *tp, tag, head;
+	uint16_t tag, head;
 
 	pthread_mutex_lock(&sc->esc_mtx);
 	DPRINTF("rx_run: head %x, tail %x\r\n", sc->esc_RDH, sc->esc_RDT);
@@ -969,7 +978,17 @@ e82545_tap_callback(int fd, enum ev_type type, void *param)
 
 		/* Grab rx descriptor pointed to by the head pointer */
 		for (i = 0; i < maxpktdesc; i++) {
-			rxd = &sc->esc_rxdesc[(head + i) % size];
+#ifdef DMA_INDIR
+			// read the descriptor pointer via DMA
+			dma_iova_t rxd_va = dma_rd_ptr(sc->esc_rxdesc, (head+i) % size);
+			// copy the descriptor itself via DMA into a local buffer
+			rxd = &rxd_local;
+			dma_rd_block(rxd, rxd_va, sizeof(struct e1000_rx_desc));
+#else
+			// fetch the descriptor, making a pointer to the remote copy
+			struct e1000_rx_desc *desc = (struct e1000_rx_desc *) sc->esc_rxdesc;
+			rxd = &desc[(head + i) % size];
+#endif
 #if defined(E1000_DESC_CAP)
 			vec[i].iov_base = cap_guest2host(sc->esc_ctx,
 			    rxd->buffer_addr, bufsz);
@@ -1005,12 +1024,15 @@ e82545_tap_callback(int fd, enum ev_type type, void *param)
 
 		/* Apply VLAN filter. */
 #ifdef DMA_INDIR
-		// iov_base is a uint8_t* so we can do arithmetic on it
-		tp = (uint16_t *)vec[0].iov_base + 6;
-		uint16_t tp0 = dma_rd_uint16_t(tp+0);
-		uint16_t tp1 = dma_rd_uint16_t(tp+1);
+		// iov_base was originally a uint8_t* so we could do byte arithmetic
+		// but we need to make the arithmetic explicit
+//		tp = (uint16_t *)vec[0].iov_base + 6;
+		dma_iova_t tp = dma_iova_incbase(vec[0].iov_base, 6, sizeof(uint8_t));
+		uint16_t tp0 = dma_rd_uint16_t(tp);
+		tp = dma_iova_incbase(tp, 1, sizeof(uint16_t));
+		uint16_t tp1 = dma_rd_uint16_t(tp);
 #else
-		tp = (uint16_t *)vec[0].iov_base + 6;
+		uint16_t *tp = (uint16_t *)vec[0].iov_base + 6;
 		uint16_t tp0 = tp[0];
 		uint16_t tp1 = tp[1];
 #endif
@@ -1028,22 +1050,41 @@ e82545_tap_callback(int fd, enum ev_type type, void *param)
 		}
 
 		/* Update all consumed descriptors. */
-		for (i = 0; i < n - 1; i++) {
-			rxd = &sc->esc_rxdesc[(head + i) % size];
+		for (i = 0; i < n; i++) {
+			uint8_t status = E1000_RXD_STAT_DD;
+			if (i == n-1) {
+				// end of packet
+				/* XXX signal no checksum for now */
+				status |= E1000_RXD_STAT_PIF | E1000_RXD_STAT_IXSM | E1000_RXD_STAT_EOP;
+			}
+#ifdef DMA_INDIR
+			// read the descriptor pointer via DMA
+			dma_iova_t rxd_va = dma_rd_ptr(sc->esc_rxdesc, (head+i) % size);
+			struct e1000_rx_desc desc;
+			desc.length = htole16(bufsz);
+			desc.csum = 0;
+			desc.errors = 0;
+			desc.special = 0;
+			desc.status = status;
+			// calculate the offset of the start of the descriptor metadata,
+			// after the pointer
+			size_t target_offset = sizeof(dma_iova_t);
+			dma_iova_t rxd_metadata = dma_iova_incbase(rxd_va, target_offset, 1);
+			// a bit of a fudge to apply byte arithmetic to get at the second part of the struct
+			dma_wr_block(rxd_metadata, ((uint8_t*) &desc) + target_offset, sizeof(desc) - target_offset);
+#else
+			// fetch the descriptor, making a pointer to the remote copy
+			struct e1000_rx_desc *desc = (struct e1000_rx_desc *) sc->esc_rxdesc;
+			rxd = &desc[(head + i) % size];
+			//rxd = &sc->esc_rxdesc[(head + i) % size];
 			rxd->length = htole16(bufsz);
 			rxd->csum = 0;
 			rxd->errors = 0;
 			rxd->special = 0;
-			rxd->status = E1000_RXD_STAT_DD;
+			rxd->status = status;
+#endif
+
 		}
-		rxd = &sc->esc_rxdesc[(head + i) % size];
-		rxd->length = htole16(len % bufsz);
-		rxd->csum = 0;
-		rxd->errors = 0;
-		rxd->special = 0;
-		/* XXX signal no checksum for now */
-		rxd->status = E1000_RXD_STAT_PIF | E1000_RXD_STAT_IXSM |
-		    E1000_RXD_STAT_EOP | E1000_RXD_STAT_DD;
 
 		/* Schedule receive interrupts. */
 		if (len <= sc->esc_RSRPD) {

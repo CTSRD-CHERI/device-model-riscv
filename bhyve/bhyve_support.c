@@ -198,13 +198,14 @@ paddr_guest2host(struct vmctx *ctx, dma_iova_t gaddr, size_t len)
 	return (result);
 }
 
-capability
-cap_guest2host(struct vmctx *ctx, capability gaddr, size_t len)
+dma_iopa_t
+cap_guest2host(struct vmctx *ctx, dma_iova_t gaddr, size_t len)
 {
 
+	capability gaddr_cap = (capability) gaddr;
 #ifndef CONFIG_IOMMU
-	gaddr = mdx_incoffset(gaddr, DMAPBASE);
+	gaddr_cap = mdx_incoffset(gaddr_cap, DMAPBASE);
 #endif
 
-	return (gaddr);
+	return (dma_iopa_t) gaddr_cap;
 }

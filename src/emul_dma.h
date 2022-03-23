@@ -99,4 +99,21 @@ static inline dma_status dma_rd_block(void *output, dma_iova_t iova, size_t len)
     return DMA_SUCCESS;
 }
 
+static inline dma_iova_t dma_rd_ptr(dma_iova_t iova, size_t index) {
+    // IOMMU address translation step: convert the iova into a void**
+    uintptr_t iova_ptr = (uintptr_t) iova;
+    void **pa = (void **) iova_ptr;
+    // deference the void** to return another pointer, adding the offset
+    // XXX: assume sizeof(dma_iova_t)==sizeof(void**), else we're in trouble
+    void *data = pa[index];
+    // convert the pointer to an IOVA type
+    dma_iova_t data_iova = (dma_iova_t) data;
+    return data_iova;
+}
+
+static inline dma_iova_t dma_iova_incbase(dma_iova_t iova, size_t offset, size_t granule)
+{
+    return iova + offset * granule;
+}
+
 #endif	/* !_EMUL_DMA_H_ */

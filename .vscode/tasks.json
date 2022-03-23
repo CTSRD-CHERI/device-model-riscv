@@ -8,7 +8,7 @@
         "args": ["CROSS_COMPILE=$HOME/cheri/output/sdk/bin/riscv64-unknown-freebsd-", "CC=$HOME/cheri/output/sdk/bin/clang", "make", "-j1", "debug_purecap"],
         "options": {
           "env": {"CROSS_COMPILE":"/home/atm26/cheri/output/sdk/bin/riscv64-unknown-freebsd-",
-                    "CC":"/home/atm26/cheri/output/sdk/bin/clang" 
+                    "CC":"/home/atm26/cheri/output/sdk/bin/clang"
                 }
         },
         "problemMatcher": ["$gcc"],

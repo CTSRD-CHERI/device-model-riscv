@@ -54,6 +54,6 @@ int bhyve_pci_init(struct vmctx *ctx);
 void bhyve_pci_cfgrw(struct vmctx *ctx, int in, int bnum, int snum,
     int fnum, int coff, int bytes, uint32_t *val);
 void * blockif_thr(void *);
-capability cap_guest2host(struct vmctx *ctx, capability gaddr, size_t len);
+dma_iopa_t cap_guest2host(struct vmctx *ctx, dma_iova_t gaddr, size_t len);
 
 #endif /* !_BHYVE_SUPPORT_H_ */

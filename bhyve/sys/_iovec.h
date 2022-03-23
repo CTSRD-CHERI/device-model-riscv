@@ -36,6 +36,7 @@
 #define	_SYS__IOVEC_H_
 
 #include <sys/types.h>
+#include "emul_dma.h"
 
 #ifndef _SIZE_T_DECLARED
 typedef	__size_t	size_t;
@@ -43,7 +44,7 @@ typedef	__size_t	size_t;
 #endif
 
 struct iovec {
-	intptr_t iov_base;	/* Base address. */
+	dma_iova_t iov_base;	/* Base address. */
 	size_t	 iov_len;	/* Length. */
 };
 
