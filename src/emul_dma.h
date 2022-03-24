@@ -116,4 +116,9 @@ static inline dma_iova_t dma_iova_incbase(dma_iova_t iova, size_t offset, size_t
     return iova + offset * granule;
 }
 
+// allocate memory for DMA with function scope
+// (ie no explicit free; free on function exit)
+#define dma_alloca(size)             \
+    ((dma_iova_t) __builtin_alloca(size));
+
 #endif	/* !_EMUL_DMA_H_ */

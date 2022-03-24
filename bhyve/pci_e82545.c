@@ -173,10 +173,14 @@ struct e1000_rx_desc {
 
 /* Legacy transmit descriptor */
 struct e1000_tx_desc {
-#if defined(E1000_DESC_CAP)
-	void * __capability buffer_addr;
+#ifdef DMA_INDIR
+	dma_iova_t buffer_addr;
 #else
-	uint64_t buffer_addr;   /* Address of the descriptor's data buffer */
+	#if defined(E1000_DESC_CAP)
+		void * __capability buffer_addr;
+	#else
+		uint64_t buffer_addr;   /* Address of the descriptor's data buffer */
+	#endif
 #endif
 	union {
 		uint32_t data;
@@ -312,7 +316,7 @@ struct e82545_softc {
 	uint32_t	esc_IMC;	/* x00D8 mask clear */
 
 	/* Transmit */
-	union e1000_tx_udesc *esc_txdesc;
+	/*union e1000_tx_udesc * */ dma_iova_t esc_txdesc;
 	struct e1000_context_desc esc_txctx;
 	pthread_t	esc_tx_tid;
 	pthread_cond_t	esc_tx_cond;
@@ -883,6 +887,7 @@ e82545_tx_update_tdba(struct e82545_softc *sc)
 	sc->esc_tdba = (uint64_t)sc->esc_TDBAH << 32 | sc->esc_TDBAL;
 
 	/* Cache host mapping of guest descriptor array */
+	/* XXX: is this an IOVA or an IOPA? */
 	sc->esc_txdesc = paddr_guest2host(sc->esc_ctx, sc->esc_tdba,
             sc->esc_TDLEN);
 }
@@ -904,7 +909,7 @@ e82545_tx_ctl(struct e82545_softc *sc, uint32_t val)
 	} else {
 		e82545_tx_disable(sc);
 		sc->esc_tdba = 0;
-		sc->esc_txdesc = NULL;
+		sc->esc_txdesc = (dma_iova_t) NULL;
 	}
 
 	/* Save TCTL value after stripping reserved bits 31:25,23,2,0 */
@@ -1128,14 +1133,19 @@ e82545_carry(uint32_t sum)
 }
 
 static uint16_t
-e82545_buf_checksum(uint8_t *buf, int len)
+e82545_buf_checksum(dma_iova_t buf, int len)
 {
 	int i;
 	uint32_t sum = 0;
+	uint8_t localbuf[len];
 
+	// DMA the packet for checksumming purposes
+	// in real life we would probably have this in local
+	// memory, but since we don't have that here...
+	dma_rd_block(localbuf, buf, len);
 	/* Checksum all the pairs of bytes first... */
 	for (i = 0; i < (len & ~1U); i += 2)
-		sum += *((uint16_t *)(buf + i));
+		sum += *((uint16_t *)(localbuf + i));
 
 	/*
 	 * If there's a single byte left over, checksum it, too.
@@ -1143,7 +1153,7 @@ e82545_buf_checksum(uint8_t *buf, int len)
 	 * the high byte.
 	 */
 	if (i < len)
-		sum += htons(buf[i] << 8);
+		sum += htons(localbuf[i] << 8);
 
 	return (e82545_carry(sum));
 }
@@ -1169,8 +1179,8 @@ e82545_iov_checksum(struct iovec *iov, int iovcnt, int off, int len)
 		s = e82545_buf_checksum(iov->iov_base + off, now);
 #else
 		//FIXME DMA_INDIR
-		uint8_t *offset_iov_base = mdx_incoffset(iov->iov_base, off);
-		s = e82545_buf_checksum(offset_iov_base, now);
+		uint8_t *offset_iov_base = mdx_incoffset((void *) iov->iov_base, off);
+		s = e82545_buf_checksum((dma_iopa_t) offset_iov_base, now);
 #endif
 		sum += odd ? (s << 8) : s;
 		odd ^= (now & 1);
@@ -1215,8 +1225,13 @@ e82545_transmit_checksum(struct iovec *iov, int iovcnt, struct ck_info *ck)
 static void
 e82545_transmit_backend(struct e82545_softc *sc, struct iovec *iov, int iovcnt)
 {
-
-	dm_process_tx(iov, iovcnt);
+	// allocate some 'DMA able' memory
+	// (only exists for this function scope)
+	dma_iova_t txiov = dma_alloca(sizeof(iov)*iovcnt);
+	// copy the iovec into it
+	dma_wr_block(txiov, iov, sizeof(iov)*iovcnt);
+	// send the iovec, slightly grubbily converting back to iov*
+	dm_process_tx((struct iovec *) txiov, iovcnt);
 
 #if 0
 	if (sc->esc_tapfd == -1)
@@ -1230,18 +1245,30 @@ static void
 e82545_transmit_done(struct e82545_softc *sc, uint16_t head, uint16_t tail,
     uint16_t dsize, int *tdwb)
 {
-	union e1000_tx_udesc *dsc;
+	//union e1000_tx_udesc *dsc;
+	dma_iova_t dsc;
+	struct e1000_tx_desc local_dsc;
 
 	for ( ; head != tail; head = (head + 1) % dsize) {
-		dsc = &sc->esc_txdesc[head];
 #ifdef DMA_INDIR
-		uint32_t data = dma_rd_uint32_t(&dsc->td.upper.data);
+		// esc_txdesc points to the start of the descriptor list
+		dsc = sc->esc_txdesc;
+		// generate pointer to the 'head'th descriptor
+		dsc = dma_iova_incbase(dsc, head, sizeof(dma_iova_t));
+		// make a local copy of the descriptor
+		dma_rd_block(&local_dsc, dsc, sizeof(struct e1000_tx_desc));
+		uint32_t data = local_dsc.upper.data;
+		//uint32_t data = dma_rd_uint32_t(&dsc->td.upper.data);
 		if (le32toh(data) & E1000_TXD_CMD_RS) {
 			data |= htole32(E1000_TXD_STAT_DD);
-			dma_wr_uint32_t(&dsc->td.upper.data, data);
+			// write back to the remote descriptor, since we'll throw the local
+			// one away at the end of the function
+			dsc = dma_iova_incbase(dsc, offsetof(struct e1000_tx_desc, upper.data), 1);
+			dma_wr_uint32_t(dsc, data);
 			*tdwb = 1;
 		}
 #else
+		dsc = &sc->esc_txdesc[head];
 		if (le32toh(dsc->td.lower.data) & E1000_TXD_CMD_RS) {
 			dsc->td.upper.data |= htole32(E1000_TXD_STAT_DD);
 			*tdwb = 1;
@@ -1255,12 +1282,13 @@ e82545_transmit(struct e82545_softc *sc, uint16_t head, uint16_t tail,
     uint16_t dsize, uint16_t *rhead, int *tdwb)
 {
 	uint8_t *hdr, *hdrp;
+	dma_iova_t hdr_va;
 	struct iovec iovb[I82545_MAX_TXSEGS + 2];
 	struct iovec tiov[I82545_MAX_TXSEGS + 2];
 	struct e1000_context_desc *cd;
 	struct ck_info ckinfo[2];
 	struct iovec *iov;
-	union  e1000_tx_udesc *dsc;
+	union e1000_tx_udesc *dsc;
 	union  e1000_tx_udesc dsc_local;
 	int desc, dtype, len, ntype, iovcnt, tlen, hdrlen, vlen, tcp, tso;
 	int mss, paylen, seg, tiovcnt, left, now, nleft, nnow, pv, pvoff;
@@ -1283,8 +1311,12 @@ e82545_transmit(struct e82545_softc *sc, uint16_t head, uint16_t tail,
 			return (0);
 		}
 #ifdef DMA_INDIR
+		// get the IOVA of the descriptor table
+		dma_iova_t dsc_iova = sc->esc_txdesc;
+		// point to the descriptor we're interested in
+		dsc_iova = dma_iova_incbase(dsc_iova, sizeof(dma_iova_t), head);
 		// copy descriptor into local memory
-		dma_rd_block(&dsc_local, &sc->esc_txdesc[head], sizeof(union e1000_tx_udesc));
+		dma_rd_block(&dsc_local, dsc_iova, sizeof(union e1000_tx_udesc));
 		dsc = &dsc_local;
 #else
 		// use descriptor from shared memory with host
@@ -1444,7 +1476,7 @@ e82545_transmit(struct e82545_softc *sc, uint16_t head, uint16_t tail,
 #if 0
 			iov->iov_base += now;
 #else
-			iov->iov_base = mdx_incoffset(iov->iov_base, now);
+			iov->iov_base = (dma_iova_t) mdx_incoffset((void *) iov->iov_base, now);
 #endif
 			iov->iov_len -= now;
 			if (iov->iov_len == 0) {
@@ -1454,6 +1486,8 @@ e82545_transmit(struct e82545_softc *sc, uint16_t head, uint16_t tail,
 		}
 		iov--;
 		iovcnt++;
+#ifdef DMA_INDIR
+		hdr_va = dma_alloca(hdrlen+vlen)
 		iov->iov_base = hdr;
 		iov->iov_len = hdrlen;
 	}
@@ -1519,7 +1553,7 @@ e82545_transmit(struct e82545_softc *sc, uint16_t head, uint16_t tail,
 #if 0
 			tiov[tiovcnt].iov_base = iov[pv].iov_base + pvoff;
 #else
-			tiov[tiovcnt].iov_base = mdx_incoffset(iov[pv].iov_base,
+			tiov[tiovcnt].iov_base = (dma_iova_t) mdx_incoffset((void *) iov[pv].iov_base,
 			    pvoff);
 #endif
 			tiov[tiovcnt++].iov_len = nnow;
@@ -2467,7 +2501,7 @@ e82545_reset(struct e82545_softc *sc, int drvr)
 		sc->esc_TADV = 0;
 	}
 	sc->esc_tdba = 0;
-	sc->esc_txdesc = NULL;
+	sc->esc_txdesc = (dma_iova_t) NULL;
 	sc->esc_TXCW = 0;
 	sc->esc_TCTL = 0;
 	sc->esc_TDLEN = 0;
