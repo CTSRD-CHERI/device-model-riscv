@@ -936,7 +936,9 @@ e82545_bufsz(uint32_t rctl)
 static uint8_t dummybuf[2048];
 #endif
 
-/* XXX one packet at a time until this is debugged */
+/* Called when TAP/VirtIO has a packet for us to deal with
+ *
+ * XXX one packet at a time until this is debugged */
 static void
 e82545_tap_callback(int fd, enum ev_type type, void *param)
 {
@@ -944,6 +946,7 @@ e82545_tap_callback(int fd, enum ev_type type, void *param)
 	struct e1000_rx_desc rxd_local;
 	struct e1000_rx_desc *rxd;
 	struct iovec vec[64];
+	struct virtual_iovec vec0_va;
 	int left, len, lim, maxpktsz, maxpktdesc, bufsz, i, n, size;
 	uint32_t cause = 0;
 	uint16_t tag, head;
@@ -985,27 +988,37 @@ e82545_tap_callback(int fd, enum ev_type type, void *param)
 		for (i = 0; i < maxpktdesc; i++) {
 #ifdef DMA_INDIR
 			// read the descriptor pointer via DMA
-			dma_iova_t rxd_va = dma_rd_ptr(sc->esc_rxdesc, (head+i) % size);
+			dma_iova_t rxd_iova = dma_rd_ptr(sc->esc_rxdesc, (head+i) % size);
 			// copy the descriptor itself via DMA into a local buffer
+			dma_rd_block(&rxd_local, rxd_iova, sizeof(struct e1000_rx_desc));
 			rxd = &rxd_local;
-			dma_rd_block(rxd, rxd_va, sizeof(struct e1000_rx_desc));
 #else
 			// fetch the descriptor, making a pointer to the remote copy
 			struct e1000_rx_desc *desc = (struct e1000_rx_desc *) sc->esc_rxdesc;
 			rxd = &desc[(head + i) % size];
 #endif
 #if defined(E1000_DESC_CAP)
-			vec[i].iov_base = cap_guest2host(sc->esc_ctx,
+			// translate the buffer IOVA inside the descriptor into a local VA
+			dm_va_t local_buf = cap_guest2host(sc->esc_ctx,
 			    rxd->buffer_addr, bufsz);
+			vec[i].iov_base = (uint8_t *) local_buf;
+			if (i==0) {
+				vec0_va.iov_base = local_buf;
+			}
 #else
-			vec[i].iov_base = paddr_guest2host(sc->esc_ctx,
+			vec[i].iov_base = (uint8_t *) paddr_guest2host(sc->esc_ctx,
 			    le64toh(rxd->buffer_addr), bufsz);
+			if (i==0) {
+				vec0_va.iov_base = vec[i].iov_base;
+			}
 #endif
 			vec[i].iov_len = bufsz;
 		}
 #if 0
 		len = readv(sc->esc_tapfd, vec, maxpktdesc);
 #else
+		/* Fill in the iovec with received data from VirtIO
+		 */
 		len = dm_process_rx(vec, maxpktdesc);
 #endif
 		if (len <= 0) {
@@ -1031,13 +1044,15 @@ e82545_tap_callback(int fd, enum ev_type type, void *param)
 #ifdef DMA_INDIR
 		// iov_base was originally a uint8_t* so we could do byte arithmetic
 		// but we need to make the arithmetic explicit
+		// iov_base still points to the remote memory, so we need to use 
+		// DMA primitives
 //		tp = (uint16_t *)vec[0].iov_base + 6;
-		dma_iova_t tp = dma_iova_incbase(vec[0].iov_base, 6, sizeof(uint8_t));
+		dma_iova_t tp = dma_iova_incbase(vec0_va.iov_base, 6, sizeof(uint8_t));
 		uint16_t tp0 = dma_rd_uint16_t(tp);
 		tp = dma_iova_incbase(tp, 1, sizeof(uint16_t));
 		uint16_t tp1 = dma_rd_uint16_t(tp);
 #else
-		uint16_t *tp = (uint16_t *)vec[0].iov_base + 6;
+		uint16_t *tp = (uint16_t *)vec0_va.iov_base + 6;
 		uint16_t tp0 = tp[0];
 		uint16_t tp1 = tp[1];
 #endif
@@ -1225,13 +1240,20 @@ e82545_transmit_checksum(struct iovec *iov, int iovcnt, struct ck_info *ck)
 static void
 e82545_transmit_backend(struct e82545_softc *sc, struct iovec *iov, int iovcnt)
 {
+	// Transmit the packet using the device model VirtIO backend
+	// This assumes the iovec is already created in device memory,
+	// and points to other buffers in device memory
+
+#if 0
 	// allocate some 'DMA able' memory
-	// (only exists for this function scope)
+	// (only exists for this function scope,
+	// must ensure packets are 'sent' synchronously)
 	dma_iova_t txiov = dma_alloca(sizeof(iov)*iovcnt);
 	// copy the iovec into it
 	dma_wr_block(txiov, iov, sizeof(iov)*iovcnt);
 	// send the iovec, slightly grubbily converting back to iov*
-	dm_process_tx((struct iovec *) txiov, iovcnt);
+#endif
+	dm_process_tx(iov, iovcnt);
 
 #if 0
 	if (sc->esc_tapfd == -1)
@@ -1277,12 +1299,22 @@ e82545_transmit_done(struct e82545_softc *sc, uint16_t head, uint16_t tail,
 	}
 }
 
+/* Handle the transmit datapath.
+ * This function needs to:
+ * Find the head and tail pointers (IOVA + index)
+ * Parse the ringbuffer structure pointed by them
+ * - contains IOVAs pointing to data blocks
+ * Generate a local struct iovec
+ * - containing device model VAs for data blocks
+ * Hand it over to dm_process_tx for sending via VirtIO
+ */
+
 int
 e82545_transmit(struct e82545_softc *sc, uint16_t head, uint16_t tail,
     uint16_t dsize, uint16_t *rhead, int *tdwb)
 {
 	uint8_t *hdr, *hdrp;
-	dma_iova_t hdr_va;
+//	dma_iova_t hdr_va;
 	struct iovec iovb[I82545_MAX_TXSEGS + 2];
 	struct iovec tiov[I82545_MAX_TXSEGS + 2];
 	struct e1000_context_desc *cd;
@@ -1311,6 +1343,9 @@ e82545_transmit(struct e82545_softc *sc, uint16_t head, uint16_t tail,
 			return (0);
 		}
 #ifdef DMA_INDIR
+		// Read the specific descriptor from the table using DMA primitives
+		// Descriptor contains an IOVA
+		//
 		// get the IOVA of the descriptor table
 		dma_iova_t dsc_iova = sc->esc_txdesc;
 		// point to the descriptor we're interested in
@@ -1374,8 +1409,9 @@ e82545_transmit(struct e82545_softc *sc, uint16_t head, uint16_t tail,
 			tlen += len;
 			(void) tlen;
 			if (iovcnt < I82545_MAX_TXSEGS) {
+				// translate the descriptor into a local virtual address
 #if defined(E1000_DESC_CAP)
-				iov[iovcnt].iov_base = cap_guest2host(
+				iov[iovcnt].iov_base = (dm_va_t) cap_guest2host(
 				    sc->esc_ctx,
 				    dsc->td.buffer_addr, len);
 #else
@@ -1462,13 +1498,17 @@ e82545_transmit(struct e82545_softc *sc, uint16_t head, uint16_t tail,
 	}
 
 	/* Allocate, fill and prepend writable header vector. */
+	/* (take local copy of header fields so we can change them later)
+	 * Note we've already translated the address in iov_base to be a local VA
+	 * so we can copy it as local memory
+	 */
 	if (hdrlen != 0) {
 		hdr = __builtin_alloca(hdrlen + vlen);
 		hdr += vlen;
 		for (left = hdrlen, hdrp = hdr; left > 0;
 		    left -= now, hdrp += now) {
 			now = MIN(left, iov->iov_len);
-#ifdef DMA_INDIR
+#if 0 //DMA_INDIR
 			dma_rd_block(hdrp, iov->iov_base, now);
 #else
 			memcpy(hdrp, iov->iov_base, now);
@@ -1476,7 +1516,7 @@ e82545_transmit(struct e82545_softc *sc, uint16_t head, uint16_t tail,
 #if 0
 			iov->iov_base += now;
 #else
-			iov->iov_base = (dma_iova_t) mdx_incoffset((void *) iov->iov_base, now);
+			iov->iov_base = (dm_va_t) mdx_incoffset((void *) iov->iov_base, now);
 #endif
 			iov->iov_len -= now;
 			if (iov->iov_len == 0) {
@@ -1486,8 +1526,6 @@ e82545_transmit(struct e82545_softc *sc, uint16_t head, uint16_t tail,
 		}
 		iov--;
 		iovcnt++;
-#ifdef DMA_INDIR
-		hdr_va = dma_alloca(hdrlen+vlen)
 		iov->iov_base = hdr;
 		iov->iov_len = hdrlen;
 	}
@@ -1553,7 +1591,7 @@ e82545_transmit(struct e82545_softc *sc, uint16_t head, uint16_t tail,
 #if 0
 			tiov[tiovcnt].iov_base = iov[pv].iov_base + pvoff;
 #else
-			tiov[tiovcnt].iov_base = (dma_iova_t) mdx_incoffset((void *) iov[pv].iov_base,
+			tiov[tiovcnt].iov_base = (dm_va_t) mdx_incoffset((void *) iov[pv].iov_base,
 			    pvoff);
 #endif
 			tiov[tiovcnt++].iov_len = nnow;

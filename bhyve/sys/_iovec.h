@@ -43,8 +43,18 @@ typedef	__size_t	size_t;
 #define	_SIZE_T_DECLARED
 #endif
 
+struct virtual_iovec {
+	dma_iova_t iov_base;	/* Base address on the host side. */
+	size_t	 iov_len;	/* Length. */
+};
+
+struct physical_iovec {
+	dma_iopa_t iov_base;	/* Base address on the DMA side. */
+	size_t	 iov_len;	/* Length. */
+};
+
 struct iovec {
-	dma_iova_t iov_base;	/* Base address. */
+	uint8_t *iov_base;	/* Base address for local (non-DMA) usage. */
 	size_t	 iov_len;	/* Length. */
 };
 

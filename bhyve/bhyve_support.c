@@ -174,11 +174,11 @@ lpc_pirq_routed(void)
 	dprintf("%s\n", __func__);
 }
 
-dma_iopa_t
+dm_va_t
 paddr_guest2host(struct vmctx *ctx, dma_iova_t gaddr, size_t len)
 {
 	uintptr_t addr;
-	dma_iopa_t result;
+	dm_va_t result;
 
 #ifdef CONFIG_IOMMU
 	addr = gaddr;
@@ -190,15 +190,15 @@ paddr_guest2host(struct vmctx *ctx, dma_iova_t gaddr, size_t len)
 	    __func__, gaddr, addr, len);
 
 #ifdef __CHERI_PURE_CAPABILITY__
-	result = (dma_iopa_t) cheri_setoffset(ctx->cap, addr);
+	result = (dm_va_t) cheri_setoffset(ctx->cap, addr);
 #else
-	result = (dma_iopa_t) addr;
+	result = (dm_va_t) addr;
 #endif
 
 	return (result);
 }
 
-dma_iopa_t
+dm_va_t
 cap_guest2host(struct vmctx *ctx, dma_iova_t gaddr, size_t len)
 {
 
@@ -207,5 +207,5 @@ cap_guest2host(struct vmctx *ctx, dma_iova_t gaddr, size_t len)
 	gaddr_cap = mdx_incoffset(gaddr_cap, DMAPBASE);
 #endif
 
-	return (dma_iopa_t) gaddr_cap;
+	return (dm_va_t) gaddr_cap;
 }

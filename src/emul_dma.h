@@ -45,7 +45,10 @@ typedef enum {
 
 // IO virtual address for DMA
 typedef uintptr_t dma_iova_t;
+// physical address for DMA
 typedef uintptr_t dma_iopa_t;
+// virtual address internal to the device model
+typedef capability dm_va_t;
 
 // constructor for a DMA write function for values of 'type'
 #define CTR_DMA_WR(type) \
