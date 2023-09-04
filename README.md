@@ -55,7 +55,7 @@ This includes PCI itself, E1000 and AHCI controllers:
 
 Once devices initialized you can setup an IP address on em0 device in CheriBSD, and a filesystem on /dev/ada0.
 
-### Debugging
+## Debugging
 
 QEMU provides a GDB interface by which it's possible to attach to either or
 both cores.  First, make sure device-model-riscv.elf is compiled with debug
@@ -89,6 +89,16 @@ Then connect to the GDB stub and configure GDB
     * 1    Thread 1.1 (CPU#0 [halted ]) 0xffffffc0005bd6f6 in ?? ()
       2    Thread 1.2 (CPU#1 [running]) 0xffffffd0f80059a4 in uart_16550_rxready ()
 
+You can wrap these up into a script dm.gdb:
+
+   set arch riscv:rv64
+   target extended-remote localhost:1234
+   file obj/device-model-riscv.elf
+   thread 2
+   set step on
+
+and then `source dm.gdb` after you start gdb.
+
 We can now use GDB to debug either thread (here 1 is FreeBSD, 2 is the
 device model).  Note that it's not currently possible to pause one while
 letting the other run - you have to pause both together.
@@ -110,3 +120,43 @@ letting the other run - you have to pause both together.
     87      }
     (gdb)
     mdx_uart_rxready (dev=0xffffffd0f8802960 [rwxRW,0xffffffd0f8802960-0xffffffd0f88029d0]) at mdepx/dev/uart/uart.c:63                                                   63              return (ready);
+
+Symbols are available, eg to set a breakpoint at the main() function:
+
+    (gdb) break *main
+
+Function boundary tracing can be achieved by setting a breakpoint on each
+function:
+
+    (gdb) set logging on  # goes to gdb.txt
+    (gdb) set confirm off
+    (gdb) rbreak .        # set breakpoint on every symbol
+    (gdb) c               # continue (Enter on a blank line repeats)
+
+gdb will stop at every function entry and print the breakpoint number.  For
+particularly regular breakpoints you can delete them so they don't stop
+again: `disable 789`.
+
+### Notes on virtual memory and bootup
+
+The second core starts in a bootloader with the MMU off, at physical address
+0x80xxxxxx.  Once the device model binary is loaded from CheriBSD, it is mapped at
+physical address 0xf8000000.
+
+The first code run is in
+mdepx/arch/riscv/riscv/start-purecap.S  
+This sets a 4-entry page table that maps the 4GB of physical
+address space starting at 0x0 to virtual address 0xffffffd000000000.  The
+supervisor trap handler is then set to the label `va` in virtual address
+space, eg 0xffffffd0f80000ac.  The MMU is then enabled.  Since the next
+PC=0xf80000ac, this virtual address is no longer mapped and the supervisor
+trap handler is called.  Execution now proceeds in virtual address space.
+
+Note that QEMU's gdb stub can't single step this switch (it can't insert
+breakpoint instructions in memory which no longer exists), so you have to know that
+execution has continued at `va`.  If you run:
+
+    ~/cheri/output/sdk/bin/riscv64cheri-objdump -DSdt obj/device-model-riscv.elf > device-model-riscv.dump
+
+It'll output the disassembly and symbol table, from where you can find the
+virtual address of `va` and trace from there onwards.
