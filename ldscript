@@ -42,9 +42,11 @@ SECTIONS
 	. = .;
 	_smem = ABSOLUTE(.);
 	.sdata : {
+		. = ALIGN(16);
 		_sdata = ABSOLUTE(.);
 		*(.sdata)
 
+		. = ALIGN(16);
 		__start_set_sysinit_set = ABSOLUTE(.);
 		*(set_sysinit*)
 		__stop_set_sysinit_set = ABSOLUTE(.);
@@ -53,6 +55,7 @@ SECTIONS
 	}
 
 	.bss : {
+		. = ALIGN(16);
 		_sbss = ABSOLUTE(.);
 		*(.bss COMMON)
 		*(.sbss)
